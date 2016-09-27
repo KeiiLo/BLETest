@@ -33,6 +33,7 @@ import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.wercup.rcup.testble.tools.SensorTagData;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,15 +46,14 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
 
     private static final String DEVICE_NAME = "Smart Sole 001";
 
-    /* Humidity Service */
+    /* Accelerometer Service */
     private static final UUID ACCEL_SERVICE = UUID.fromString("00002400-1212-efde-1523-785fef13d123");
     private static final UUID ACCEL_DATA_CHAR = UUID.fromString("00002401-1212-efde-1523-785fef13d123");
     private static final UUID ACCEL_CONFIG_CHAR = UUID.fromString("00002402-1212-efde-1523-785fef13d123");
-    /* Barometric Pressure Service */
+    /* Step Counter Service */
     private static final UUID PRESSURE_SERVICE = UUID.fromString("00002500-1212-efde-1523-785fef13d123");
     private static final UUID PRESSURE_DATA_CHAR = UUID.fromString("00002501-1212-efde-1523-785fef13d123");
     private static final UUID PRESSURE_CONFIG_CHAR = UUID.fromString("00002502-1212-efde-1523-785fef13d123");
-    private static final UUID PRESSURE_CAL_CHAR = UUID.fromString("f000aa43-0451-4000-b000-000000000000");
     /* Client Configuration Descriptor */
     private static final UUID CONFIG_DESCRIPTOR = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
@@ -63,11 +63,13 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
 
     private BluetoothGatt mConnectedGatt;
 
-    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep;
-
     private ProgressDialog mProgress;
 
+    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep;
+
+
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
+
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -104,9 +106,9 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
          * A progress dialog will be needed while the connection process is
          * taking place
          */
-//        mProgress = new ProgressDialog(this);
-//        mProgress.setIndeterminate(true);
-//        mProgress.setCancelable(false);
+        mProgress = new ProgressDialog(this);
+        mProgress.setIndeterminate(true);
+        mProgress.setCancelable(false);
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
@@ -183,6 +185,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         }
 
         clearDisplayValues();
+
     }
 
     @Override
@@ -242,7 +245,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                 mConnectedGatt = device.connectGatt(this, false, mGattCallback);
 
                 //Display progress UI
-                //mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to " + device.getName() + "..."));
+                mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to " + device.getName() + "..."));
                 return super.onOptionsItemSelected(item);
         }
     }
@@ -421,7 +424,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                  */
                 gatt.discoverServices();
                 Log.e("TEST", "Test");
-//                mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Discovering Services..."));
+                mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Discovering Services..."));
             } else if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_DISCONNECTED) {
                 /*
                  * If at any point we disconnect, send a message to clear the weather values
@@ -446,7 +449,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             Log.d(TAG, "Services Discovered: " + status);
-            //mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Enabling Sensors..."));
+            mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Enabling Sensors..."));
             /*
              * With services discovered, we are going to reset our state machine and start
              * working through the sensors we need to enable
@@ -551,15 +554,15 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                         return;
                     }
                     updatePressureValue(characteristic);
-                    break;
-                /*case MSG_PRESSURE_CAL:
+                    break;/*
+                case MSG_PRESSURE_CAL:
                     characteristic = (BluetoothGattCharacteristic) msg.obj;
                     if (characteristic.getValue() == null) {
                         Log.w(TAG, "Error obtaining cal value");
                         return;
                     }
                     updatePressureCals(characteristic);
-                    break;
+                    break;*/
                 case MSG_PROGRESS:
                     mProgress.setMessage((String) msg.obj);
                     if (!mProgress.isShowing()) {
@@ -568,7 +571,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                     break;
                 case MSG_DISMISS:
                     mProgress.hide();
-                    break;*/
+                    break;
                 case MSG_CLEAR:
                     clearDisplayValues();
                     break;

@@ -1,4 +1,4 @@
-package com.wercup.rcup.testble;
+package com.wercup.rcup.testble.tools;
 
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.util.Log;
@@ -21,13 +21,13 @@ public class SensorTagData {
         int[] coefficients = new int[4];
 
         Log.i("Accel", "X");
-        coefficients[0] = shortSignedAtOffset(c, 0);
+        coefficients[0] = shortSignedAtOffset(c, 6);
         Log.i("Accel", "Y");
-        coefficients[1] = shortSignedAtOffset(c, 2);
+        coefficients[1] = shortSignedAtOffset(c, 4);
         Log.i("Accel", "Z");
-        coefficients[2] = shortSignedAtOffset(c, 4);
+        coefficients[2] = shortSignedAtOffset(c, 2);
         Log.i("Accel", "Temp");
-        coefficients[3] = shortSignedAtOffset(c, 6);
+        coefficients[3] = getTemp(c);
 
         return coefficients;
     }
@@ -87,7 +87,8 @@ public class SensorTagData {
         Log.i("Accel", "Test2 " + test2);
 
         Log.e("Accel", "Test java " + ((test << 8) + test2));
-        return (upperByte << 8) + lowerByte;
+        Log.w("Accel", "Test java " + ((lowerByte << 8) + upperByte));
+        return (test << 8) + test2;
     }
 
     private static Integer shortUnsignedAtOffset(BluetoothGattCharacteristic c, int offset) {
@@ -95,6 +96,10 @@ public class SensorTagData {
         Integer upperByte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, offset + 1); // Note: interpret MSB as unsigned.
 
         return (upperByte << 8) + lowerByte;
+    }
+
+    private static Integer getTemp (BluetoothGattCharacteristic c) {
+        return c.getIntValue(BluetoothGattCharacteristic.FORMAT_SINT8, 1);
     }
 
     private static Integer shortUnsignedAtOffset(BluetoothGattCharacteristic c) {
