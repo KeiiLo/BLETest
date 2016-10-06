@@ -75,7 +75,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
 
     private ProgressDialog mProgress;
 
-    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep, mBattery, mDevice;
+    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep, mBattery, mBattery2;
 
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -103,7 +103,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         mTemp = (TextView) findViewById(R.id.text_temperature);
         mStep = (TextView) findViewById(R.id.text_step);
         mBattery = (TextView) findViewById(R.id.text_battery);
-        mDevice = (TextView) findViewById(R.id.text_device);
+        mBattery2 = (TextView) findViewById(R.id.text_battery2);
 
         /*
          * Bluetooth in Android 4.3 is accessed via the BluetoothManager, rather than
@@ -268,7 +268,6 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
 
                 //Display progress UI
                 mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to " + device.getName() + "..."));
-                mDevice.setText(device.getName());
                 return super.onOptionsItemSelected(item);
         }
     }
@@ -281,7 +280,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         mTemp.setText("---");
         mStep.setText("---");
         mBattery.setText("---");
-        mDevice.setText("---");
+        mBattery2.setText("---");
     }
 
 
@@ -640,8 +639,9 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
     }
 
     private void updateEnergyValue(BluetoothGattCharacteristic characteristic) {
-        double batteryLevel = SensorTagData.getBatteryLevel(characteristic);
-        mBattery.setText(String.valueOf(batteryLevel));
+        double[] batteryLevel = SensorTagData.getBatteryLevel(characteristic);
+        mBattery.setText(String.valueOf(batteryLevel[0]) + "mA");
+        mBattery2.setText(String.valueOf(batteryLevel[1]) + "V");
     }
 
 
