@@ -13,7 +13,7 @@
         android:gravity="center_horizontal"
         android:textSize="18sp"
         android:text="Test BLE data receive" />
-    <TableRow>
+    <TableRow android:id="@+id/X_Y_Z_Battery_values">
         <TextView
             android:id="@+id/text_X"
             android:layout_column="0"
@@ -31,8 +31,13 @@
             android:id="@+id/text_Z"
             android:textSize="@dimen/measurement_text_size"
             android:gravity="center_horizontal"/>
+
+        <TextView
+            android:id="@+id/text_battery"
+            android:textSize="@dimen/measurement_text_size"
+            android:gravity="center_horizontal"/>
     </TableRow>
-    <TableRow>
+    <TableRow android:id="@+id/X_Y_Z_Battery_label">
         <TextView
             android:layout_column="0"
             android:textSize="@dimen/label_text_size"
@@ -50,8 +55,14 @@
             android:textSize="@dimen/label_text_size"
             android:gravity="center_horizontal"
             android:text="Z"/>
+
+        <TextView
+            android:layout_column="2"
+            android:textSize="@dimen/label_text_size"
+            android:gravity="center_horizontal"
+            android:text="Battery"/>
     </TableRow>
-    <TableRow>
+    <TableRow android:id="@+id/taptap_values">
         <TextView
             android:id="@+id/text_taptap"
             android:textSize="@dimen/measurement_text_size"
@@ -66,8 +77,14 @@
             android:id="@+id/text_step"
             android:textSize="@dimen/measurement_text_size"
             android:gravity="center_horizontal" />
+
+        <TextView
+            android:id="@+id/text_device"
+            android:textSize="@dimen/measurement_text_size"
+            android:gravity="center_horizontal" />
+
     </TableRow>
-    <TableRow>
+    <TableRow android:id="@+id/taptap_label">
         <TextView
             android:layout_column="0"
             android:textSize="@dimen/label_text_size"
@@ -85,5 +102,39 @@
             android:textSize="@dimen/label_text_size"
             android:gravity="center_horizontal"
             android:text="Steps"/>
+
+        <TextView
+            android:layout_column="2"
+            android:textSize="@dimen/label_text_size"
+            android:gravity="center_horizontal"
+            android:text="Device"/>
+
     </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/button_row">
+
+        <Button
+            android:text="Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button3" />
+
+        <Button
+            android:text="Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button2" />
+    </TableRow>
+
 </TableLayout>

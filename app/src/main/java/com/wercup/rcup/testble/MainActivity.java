@@ -13,6 +13,9 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanSettings;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -21,6 +24,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Bundle;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Menu;
@@ -35,6 +39,7 @@ import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.wercup.rcup.testble.tools.SensorTagData;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,6 +51,10 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
 
     private static final String DEVICE_NAME = "Smart Sole 001";
 
+    /* Energy Service */
+    private static final UUID ENERGY_SERVICE = UUID.fromString("00002300-1212-efde-1523-785fef13d123");
+    private static final UUID ENERGY_DATA_CHAR = UUID.fromString("00002301-1212-efde-1523-785fef13d123");
+    private static final UUID ENERGY_CONFIG_CHAR = UUID.fromString("00002302-1212-efde-1523-785fef13d123");
     /* Accelerometer Service */
     private static final UUID ACCEL_SERVICE = UUID.fromString("00002400-1212-efde-1523-785fef13d123");
     private static final UUID ACCEL_DATA_CHAR = UUID.fromString("00002401-1212-efde-1523-785fef13d123");
@@ -59,13 +68,14 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
 
 
     private BluetoothAdapter mBluetoothAdapter;
+    private BluetoothLeScanner mBluetoothLeScanner;
     private SparseArray<BluetoothDevice> mDevices;
 
     private BluetoothGatt mConnectedGatt;
 
     private ProgressDialog mProgress;
 
-    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep;
+    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep, mBattery, mDevice;
 
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -92,6 +102,8 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         mTapTap = (TextView) findViewById(R.id.text_taptap);
         mTemp = (TextView) findViewById(R.id.text_temperature);
         mStep = (TextView) findViewById(R.id.text_step);
+        mBattery = (TextView) findViewById(R.id.text_battery);
+        mDevice = (TextView) findViewById(R.id.text_device);
 
         /*
          * Bluetooth in Android 4.3 is accessed via the BluetoothManager, rather than
@@ -99,6 +111,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
          */
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         mBluetoothAdapter = manager.getAdapter();
+        mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
 
         mDevices = new SparseArray<BluetoothDevice>();
 
@@ -185,6 +198,11 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         }
 
         clearDisplayValues();
+    /*
+        Log.e("Device Bonded",String.valueOf(mConnectedGatt));
+        Log.e("Device Bonded",String.valueOf(mConnectedGatt.getDevice()));
+        Log.e("Device Bonded",String.valueOf(mConnectedGatt.getDevice().getBondState()));
+        */
 
     }
 
@@ -197,6 +215,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         mHandler.removeCallbacks(mStopRunnable);
         mHandler.removeCallbacks(mStartRunnable);
         mBluetoothAdapter.stopLeScan(this);
+//        stopScan();
     }
 
     @Override
@@ -206,8 +225,9 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         AppIndex.AppIndexApi.end(client, getIndexApiAction());
         //Disconnect from any active tag connection
         if (mConnectedGatt != null) {
+            Log.e("onStop", "disconnecting from " + mConnectedGatt.getDevice().getName());
             mConnectedGatt.disconnect();
-            mConnectedGatt = null;
+//            mConnectedGatt = null;
         }
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -242,10 +262,13 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                  * Make a connection with the device using the special LE-specific
                  * connectGatt() method, passing in a callback for GATT events
                  */
-                mConnectedGatt = device.connectGatt(this, false, mGattCallback);
+                if (mConnectedGatt == null) {
+                    mConnectedGatt = device.connectGatt(this, false, mGattCallback);
+                }
 
                 //Display progress UI
                 mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to " + device.getName() + "..."));
+                mDevice.setText(device.getName());
                 return super.onOptionsItemSelected(item);
         }
     }
@@ -257,6 +280,8 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         mTapTap.setText("---");
         mTemp.setText("---");
         mStep.setText("---");
+        mBattery.setText("---");
+        mDevice.setText("---");
     }
 
 
@@ -274,6 +299,12 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
     };
 
     private void startScan() {
+//        ScanFilter soleFilter = new ScanFilter.Builder().setServiceUuid(PRESSURE_SERVICE).build();
+//        ArrayList<ScanFilter> filters = new ArrayList<ScanFilter>();
+//        filters.add(soleFilter);
+
+//        ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
+//        mBluetoothLeScanner.startScan(filters, setting);
         mBluetoothAdapter.startLeScan(this);
         setProgressBarIndeterminateVisibility(true);
 
@@ -371,6 +402,11 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                     characteristic = gatt.getService(ACCEL_SERVICE)
                             .getCharacteristic(ACCEL_DATA_CHAR);
                     break;
+                case 2:
+                    Log.d(TAG, "Reading Energy Data");
+                    characteristic = gatt.getService(ENERGY_SERVICE)
+                            .getCharacteristic(ENERGY_DATA_CHAR);
+                    break;
                 default:
                     mHandler.sendEmptyMessage(MSG_DISMISS);
                     Log.i(TAG, "All Sensors Enabled");
@@ -398,6 +434,11 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                     Log.d(TAG, "Set notify accel");
                     characteristic = gatt.getService(ACCEL_SERVICE)
                             .getCharacteristic(ACCEL_DATA_CHAR);
+                    break;
+                case 2:
+                    Log.d(TAG, "Set notify energy");
+                    characteristic = gatt.getService(ENERGY_SERVICE)
+                            .getCharacteristic(ENERGY_DATA_CHAR);
                     break;
                 default:
                     mHandler.sendEmptyMessage(MSG_DISMISS);
@@ -469,6 +510,9 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
             if (PRESSURE_DATA_CHAR.equals(characteristic.getUuid())) {
                 mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE, characteristic));
             }
+            if (ENERGY_DATA_CHAR.equals(characteristic.getUuid())) {
+                mHandler.sendMessage(Message.obtain(null, MSG_ENERGY, characteristic));
+            }
 
             //After reading the initial value, next we enable notifications
             setNotifyNextSensor(gatt);
@@ -489,10 +533,16 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
              * UI thread to update the display.
              */
             if (ACCEL_DATA_CHAR.equals(characteristic.getUuid())) {
+                Log.e("Accel", "Received Accel notification");
                 mHandler.sendMessage(Message.obtain(null, MSG_ACCEL, characteristic));
             }
             if (PRESSURE_DATA_CHAR.equals(characteristic.getUuid())) {
+                Log.e("Pressure", "Received Pressure notification");
                 mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE, characteristic));
+            }
+            if (ENERGY_DATA_CHAR.equals(characteristic.getUuid())) {
+                Log.e("Energy", "Received Energy notification");
+                mHandler.sendMessage(Message.obtain(null, MSG_ENERGY, characteristic));
             }
         }
 
@@ -530,7 +580,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
      */
     private static final int MSG_ACCEL = 101;
     private static final int MSG_PRESSURE = 102;
-    private static final int MSG_PRESSURE_CAL = 103;
+    private static final int MSG_ENERGY = 103;
     private static final int MSG_PROGRESS = 201;
     private static final int MSG_DISMISS = 202;
     private static final int MSG_CLEAR = 301;
@@ -554,15 +604,15 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                         return;
                     }
                     updatePressureValue(characteristic);
-                    break;/*
-                case MSG_PRESSURE_CAL:
+                    break;
+                case MSG_ENERGY:
                     characteristic = (BluetoothGattCharacteristic) msg.obj;
                     if (characteristic.getValue() == null) {
                         Log.w(TAG, "Error obtaining cal value");
                         return;
                     }
-                    updatePressureCals(characteristic);
-                    break;*/
+                    updateEnergyValue(characteristic);
+                    break;
                 case MSG_PROGRESS:
                     mProgress.setMessage((String) msg.obj);
                     if (!mProgress.isShowing()) {
@@ -587,6 +637,11 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         mYAccel.setText(String.valueOf(values[1]));
         mZAccel.setText(String.valueOf(values[2]));
         mTemp.setText(String.valueOf(values[3]));
+    }
+
+    private void updateEnergyValue(BluetoothGattCharacteristic characteristic) {
+        double batteryLevel = SensorTagData.getBatteryLevel(characteristic);
+        mBattery.setText(String.valueOf(batteryLevel));
     }
 
 
