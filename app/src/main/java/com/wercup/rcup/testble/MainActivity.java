@@ -14,8 +14,6 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanFilter;
-import android.bluetooth.le.ScanSettings;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -24,12 +22,12 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Bundle;
-import android.os.ParcelUuid;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.Window;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,9 +35,9 @@ import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
+//import com.wercup.rcup.testble.BLEService.BLEService;
 import com.wercup.rcup.testble.tools.SensorTagData;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -67,16 +65,18 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
     private static final UUID CONFIG_DESCRIPTOR = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
 
+//    private BLEService mBLEService;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mBluetoothLeScanner;
     private SparseArray<BluetoothDevice> mDevices;
+    private BluetoothGattCharacteristic mCharacteristic;
 
     private BluetoothGatt mConnectedGatt;
 
     private ProgressDialog mProgress;
 
-    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep, mBattery, mBattery2;
-
+    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep, mBattery, mBattery2, mRefresh;
+    private Button mReadConfig, mSendConfig;
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
 
@@ -109,12 +109,25 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
          * Bluetooth in Android 4.3 is accessed via the BluetoothManager, rather than
          * the old static BluetoothAdapter.getInstance()
          */
+//        mBLEService = new BLEService(this);
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         mBluetoothAdapter = manager.getAdapter();
         mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
 
-        mDevices = new SparseArray<BluetoothDevice>();
+        mDevices = new SparseArray<>();
 
+        mRefresh = (TextView) findViewById(R.id.text_refresh_rate);
+        mReadConfig = (Button) findViewById(R.id.btn_read);
+        mReadConfig.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mConnectedGatt != null) {
+                    mCharacteristic = mConnectedGatt.getService(ENERGY_SERVICE).getCharacteristic(ENERGY_CONFIG_CHAR);
+
+                }
+            }
+        });
+        mSendConfig = (Button) findViewById(R.id.btn_config);
         /*
          * A progress dialog will be needed while the connection process is
          * taking place
@@ -198,6 +211,9 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         }
 
         clearDisplayValues();
+//        if (mConnectedGatt != null) {
+//            mConnectedGatt.connect();
+//        }
     /*
         Log.e("Device Bonded",String.valueOf(mConnectedGatt));
         Log.e("Device Bonded",String.valueOf(mConnectedGatt.getDevice()));
@@ -226,7 +242,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         //Disconnect from any active tag connection
         if (mConnectedGatt != null) {
             Log.e("onStop", "disconnecting from " + mConnectedGatt.getDevice().getName());
-            mConnectedGatt.disconnect();
+            //mConnectedGatt.disconnect();
 //            mConnectedGatt = null;
         }
         // ATTENTION: This was auto-generated to implement the App Indexing API.
@@ -234,6 +250,9 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         client.disconnect();
     }
 
+protected void onDestroy() {
+
+}
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Add the "scan" option to the menu
@@ -263,7 +282,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                  * connectGatt() method, passing in a callback for GATT events
                  */
                 if (mConnectedGatt == null) {
-                    mConnectedGatt = device.connectGatt(this, false, mGattCallback);
+                    mConnectedGatt = device.connectGatt(this, true, mGattCallback);
                 }
 
                 //Display progress UI
@@ -281,6 +300,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         mStep.setText("---");
         mBattery.setText("---");
         mBattery2.setText("---");
+        mRefresh.setText("---");
     }
 
 
@@ -359,22 +379,19 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
             BluetoothGattCharacteristic characteristic;
             switch (mState) {
                 case 0:
+                    Log.d(TAG, "Enabling pressure config");
+                    characteristic = gatt.getService(PRESSURE_SERVICE)
+                            .getCharacteristic(PRESSURE_CONFIG_CHAR);
+                    break;
+                case 1:
+                    Log.d(TAG, "Enabling accel config");
+                    characteristic = gatt.getService(ACCEL_SERVICE)
+                            .getCharacteristic(ACCEL_CONFIG_CHAR);
+                    break;
+                case 2:
                     Log.d(TAG, "Enabling pressure cal");
                     characteristic = gatt.getService(PRESSURE_SERVICE)
                             .getCharacteristic(PRESSURE_CONFIG_CHAR);
-                    characteristic.setValue(new byte[]{0x02});
-                    break;
-                case 1:
-                    Log.d(TAG, "Enabling pressure");
-                    characteristic = gatt.getService(PRESSURE_SERVICE)
-                            .getCharacteristic(PRESSURE_CONFIG_CHAR);
-                    characteristic.setValue(new byte[]{0x01});
-                    break;
-                case 2:
-                    Log.d(TAG, "Enabling humidity");
-                    characteristic = gatt.getService(ACCEL_SERVICE)
-                            .getCharacteristic(ACCEL_CONFIG_CHAR);
-                    characteristic.setValue(new byte[]{0x01});
                     break;
                 default:
                     mHandler.sendEmptyMessage(MSG_DISMISS);
@@ -439,6 +456,21 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                     characteristic = gatt.getService(ENERGY_SERVICE)
                             .getCharacteristic(ENERGY_DATA_CHAR);
                     break;
+                case 3:
+                    Log.d(TAG, "Enabling pressure config");
+                    characteristic = gatt.getService(PRESSURE_SERVICE)
+                            .getCharacteristic(PRESSURE_CONFIG_CHAR);
+                    break;
+                case 4:
+                    Log.d(TAG, "Enabling accel config");
+                    characteristic = gatt.getService(ACCEL_SERVICE)
+                            .getCharacteristic(ACCEL_CONFIG_CHAR);
+                    break;
+                case 5:
+                    Log.d(TAG, "Enabling pressure cal");
+                    characteristic = gatt.getService(PRESSURE_SERVICE)
+                            .getCharacteristic(PRESSURE_CONFIG_CHAR);
+                    break;
                 default:
                     mHandler.sendEmptyMessage(MSG_DISMISS);
                     Log.i(TAG, "All Sensors Enabled");
@@ -449,8 +481,10 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
             gatt.setCharacteristicNotification(characteristic, true);
             //Enabled remote notifications
             BluetoothGattDescriptor desc = characteristic.getDescriptor(CONFIG_DESCRIPTOR);
-
-            desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            if (characteristic.getUuid().equals(PRESSURE_CONFIG_CHAR) || characteristic.getUuid().equals(ACCEL_CONFIG_CHAR) || characteristic.getUuid().equals(ENERGY_CONFIG_CHAR))
+                desc.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+            else
+                desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
             gatt.writeDescriptor(desc);
         }
 
@@ -543,6 +577,18 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                 Log.e("Energy", "Received Energy notification");
                 mHandler.sendMessage(Message.obtain(null, MSG_ENERGY, characteristic));
             }
+            if (ENERGY_CONFIG_CHAR.equals(characteristic.getUuid())) {
+                Log.e("Energy", "Received Energy notification");
+                mHandler.sendMessage(Message.obtain(null, MSG_ENERGY_CONFIG, characteristic));
+            }
+            if (PRESSURE_CONFIG_CHAR.equals(characteristic.getUuid())) {
+                Log.e("Energy", "Received Energy notification");
+                mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE_CONFIG, characteristic));
+            }
+            if (ACCEL_CONFIG_CHAR.equals(characteristic.getUuid())) {
+                Log.e("Energy", "Received Energy notification");
+                mHandler.sendMessage(Message.obtain(null, MSG_ACCEL_CONFIG, characteristic));
+            }
         }
 
         @Override
@@ -574,15 +620,18 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         }
     };
 
-    /*
+    /**
      * We have a Handler to process event results on the main thread
-     */
-    private static final int MSG_ACCEL = 101;
-    private static final int MSG_PRESSURE = 102;
-    private static final int MSG_ENERGY = 103;
+     **/
+    private static final int MSG_ENERGY = 301;
+    private static final int MSG_ENERGY_CONFIG = 302;
+    private static final int MSG_ACCEL = 401;
+    private static final int MSG_ACCEL_CONFIG = 402;
+    private static final int MSG_PRESSURE = 501;
+    private static final int MSG_PRESSURE_CONFIG = 502;
     private static final int MSG_PROGRESS = 201;
     private static final int MSG_DISMISS = 202;
-    private static final int MSG_CLEAR = 301;
+    private static final int MSG_CLEAR = 203;
     private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -607,10 +656,35 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                 case MSG_ENERGY:
                     characteristic = (BluetoothGattCharacteristic) msg.obj;
                     if (characteristic.getValue() == null) {
-                        Log.w(TAG, "Error obtaining cal value");
+                        Log.w(TAG, "Error obtaining energy value");
                         return;
                     }
                     updateEnergyValue(characteristic);
+                    break;
+                case MSG_ACCEL_CONFIG:
+                    characteristic = (BluetoothGattCharacteristic) msg.obj;
+                    if (characteristic.getValue() == null) {
+                        Log.w(TAG, "Error obtaining accel config return value");
+                        return;
+                    }
+                    break;
+                case MSG_PRESSURE_CONFIG:
+                    characteristic = (BluetoothGattCharacteristic) msg.obj;
+                    if (characteristic.getValue() == null) {
+                        Log.w(TAG, "Error obtaining pressure config return value");
+                        return;
+                    }
+                    break;
+                case MSG_ENERGY_CONFIG:
+                    characteristic = (BluetoothGattCharacteristic) msg.obj;
+                    if (characteristic.getValue() == null) {
+                        Log.w(TAG, "Error obtaining energy config return value");
+                        return;
+                    }
+                    else
+                    {
+                        Log.w(TAG, "Got Energy config return value!");
+                    }
                     break;
                 case MSG_PROGRESS:
                     mProgress.setMessage((String) msg.obj);

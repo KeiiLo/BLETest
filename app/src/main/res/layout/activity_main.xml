@@ -125,16 +125,21 @@
         android:id="@+id/button_row">
 
         <Button
-            android:text="Button"
+            android:text="Send config"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/button3" />
+            android:id="@+id/btn_config" />
 
         <Button
-            android:text="Button"
+            android:text="Read config"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/button2" />
+            android:id="@+id/btn_read" />
+
+        <TextView
+            android:id="@+id/text_refresh_rate"
+            android:textSize="@dimen/measurement_text_size"
+            android:gravity="center_horizontal" />
     </TableRow>
 
 </TableLayout>
