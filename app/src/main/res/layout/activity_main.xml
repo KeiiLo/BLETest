@@ -1,145 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:stretchColumns="*">
+    android:fitsSystemWindows="true"
+    tools:openDrawer="start">
 
-    <TextView
-        android:padding="@dimen/activity_horizontal_margin"
-        android:gravity="center_horizontal"
-        android:textSize="18sp"
-        android:text="Test BLE data receive" />
-    <TableRow android:id="@+id/X_Y_Z_Battery_values">
-        <TextView
-            android:id="@+id/text_X"
-            android:layout_column="0"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal"/>
-
-        <TextView
-            android:id="@+id/text_Y"
-            android:layout_column="1"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal"/>
-
-        <TextView
-            android:layout_column="2"
-            android:id="@+id/text_Z"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal"/>
-
-        <TextView
-            android:id="@+id/text_battery"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal"/>
-    </TableRow>
-    <TableRow android:id="@+id/X_Y_Z_Battery_label">
-        <TextView
-            android:layout_column="0"
-            android:textSize="@dimen/label_text_size"
-            android:gravity="center_horizontal"
-            android:text="X"/>
-
-        <TextView
-            android:layout_column="1"
-            android:textSize="@dimen/label_text_size"
-            android:gravity="center_horizontal"
-            android:text="Y"/>
-
-        <TextView
-            android:layout_column="2"
-            android:textSize="@dimen/label_text_size"
-            android:gravity="center_horizontal"
-            android:text="Z"/>
-
-        <TextView
-            android:layout_column="2"
-            android:textSize="@dimen/label_text_size"
-            android:gravity="center_horizontal"
-            android:text="Battery"/>
-    </TableRow>
-    <TableRow android:id="@+id/taptap_values">
-        <TextView
-            android:id="@+id/text_taptap"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal"/>
-
-        <TextView
-            android:id="@+id/text_temperature"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal" />
-
-        <TextView
-            android:id="@+id/text_step"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal" />
-
-        <TextView
-            android:id="@+id/text_battery2"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal" />
-
-    </TableRow>
-    <TableRow android:id="@+id/taptap_label">
-        <TextView
-            android:layout_column="0"
-            android:textSize="@dimen/label_text_size"
-            android:gravity="center_horizontal"
-            android:text="TAPTAP"/>
-
-        <TextView
-            android:layout_column="1"
-            android:textSize="@dimen/label_text_size"
-            android:gravity="center_horizontal"
-            android:text="Temperature" />
-
-        <TextView
-            android:layout_column="2"
-            android:textSize="@dimen/label_text_size"
-            android:gravity="center_horizontal"
-            android:text="Steps"/>
-
-        <TextView
-            android:layout_column="2"
-            android:textSize="@dimen/label_text_size"
-            android:gravity="center_horizontal"
-            android:text="Battery"/>
-
-    </TableRow>
-
-    <TableRow
+    <include
+        layout="@layout/content_main"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    <!--<android.support.design.widget.NavigationView-->
+    <!--android:id="@+id/nav_view"-->
+    <!--android:layout_width="wrap_content"-->
+    <!--android:layout_height="match_parent"-->
+    <!--android:layout_gravity="start"-->
+    <!--android:fitsSystemWindows="true"-->
+    <!--app:headerLayout="@layout/nav_header_main"-->
+    <!--app:menu="@menu/activity_main_drawer" />-->
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/button_row">
-
-        <Button
-            android:text="Send config"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/btn_config" />
-
-        <Button
-            android:text="Read config"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/btn_read" />
-
-        <TextView
-            android:id="@+id/text_refresh_rate"
-            android:textSize="@dimen/measurement_text_size"
-            android:gravity="center_horizontal" />
-    </TableRow>
-
-</TableLayout>
+</LinearLayout>

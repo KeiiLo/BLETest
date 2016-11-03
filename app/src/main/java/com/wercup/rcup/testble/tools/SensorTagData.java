@@ -36,11 +36,8 @@ public class SensorTagData {
     public static int[] extractAccelCoefficients(BluetoothGattCharacteristic c) {
         int[] coefficients = new int[4];
 
-//        Log.i("Accel", "X");
         coefficients[0] = shortSignedAtOffset(c, 0);
-//        Log.i("Accel", "Y");
         coefficients[1] = shortSignedAtOffset(c, 2);
-//        Log.i("Accel", "Z");
         coefficients[2] = shortSignedAtOffset(c, 4);
         coefficients[3] = getTemp(c);
 
@@ -55,7 +52,7 @@ public class SensorTagData {
     public static double[] getBatteryLevel (BluetoothGattCharacteristic c) {
         Integer[] rawValues = shortSignedAtOffsetBattery(c);
         double[] processedValues = new double[2];
-        Log.e("Battery", String.valueOf(rawValues[0]));
+//        Log.e("Battery", String.valueOf(rawValues[0]));
         processedValues[0] = (double) rawValues[0];
         processedValues[1] = (double) rawValues[1] / 1000;
         return processedValues;
@@ -107,7 +104,7 @@ public class SensorTagData {
         int processedTemp;
         System.arraycopy(rawData, 6, tempData, 0, 2);
         processedTemp = (((tempData[0] << 8) + tempData[1]) >> 5) / 8 + 25;
-        Log.e("Temp Processed value", String.valueOf(processedTemp));
+//        Log.e("Temp Processed value", String.valueOf(processedTemp));
 
         return  processedTemp;
     }
@@ -124,4 +121,6 @@ public class SensorTagData {
         Integer upperByte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 4); // Note: interpret MSB as unsigned.
         return (lowerByte << 24) + (lower2Byte << 16) + (lower3Byte << 8) + upperByte;
     }
+
+
 }

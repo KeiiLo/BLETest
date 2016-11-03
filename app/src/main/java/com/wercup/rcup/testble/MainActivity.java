@@ -3,27 +3,23 @@ package com.wercup.rcup.testble;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
-import android.bluetooth.le.BluetoothLeScanner;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -31,103 +27,37 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.appindexing.Action;
-import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.appindexing.Thing;
-import com.google.android.gms.common.api.GoogleApiClient;
-//import com.wercup.rcup.testble.BLEService.BLEService;
+import com.wercup.rcup.testble.BLEService.BLEService;
+import com.wercup.rcup.testble.fragments.MainFragment;
 import com.wercup.rcup.testble.tools.SensorTagData;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
  * Created by KeiLo on 22/09/16.
  */
-public class MainActivity extends Activity implements BluetoothAdapter.LeScanCallback {
+public class MainActivity extends Activity {
     private static final String TAG = "BluetoothGattActivity";
-
-    private static final String DEVICE_NAME = "Smart Sole 001";
-
-    /* Energy Service */
-    private static final UUID ENERGY_SERVICE = UUID.fromString("00002300-1212-efde-1523-785fef13d123");
-    private static final UUID ENERGY_DATA_CHAR = UUID.fromString("00002301-1212-efde-1523-785fef13d123");
-    private static final UUID ENERGY_CONFIG_CHAR = UUID.fromString("00002302-1212-efde-1523-785fef13d123");
-    /* Accelerometer Service */
-    private static final UUID ACCEL_SERVICE = UUID.fromString("00002400-1212-efde-1523-785fef13d123");
-    private static final UUID ACCEL_DATA_CHAR = UUID.fromString("00002401-1212-efde-1523-785fef13d123");
-    private static final UUID ACCEL_CONFIG_CHAR = UUID.fromString("00002402-1212-efde-1523-785fef13d123");
-    /* Step Counter Service */
-    private static final UUID PRESSURE_SERVICE = UUID.fromString("00002500-1212-efde-1523-785fef13d123");
-    private static final UUID PRESSURE_DATA_CHAR = UUID.fromString("00002501-1212-efde-1523-785fef13d123");
-    private static final UUID PRESSURE_CONFIG_CHAR = UUID.fromString("00002502-1212-efde-1523-785fef13d123");
-    /* Client Configuration Descriptor */
-    private static final UUID CONFIG_DESCRIPTOR = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
-
-
-//    private BLEService mBLEService;
-    private BluetoothAdapter mBluetoothAdapter;
-    private BluetoothLeScanner mBluetoothLeScanner;
-    private SparseArray<BluetoothDevice> mDevices;
-    private BluetoothGattCharacteristic mCharacteristic;
-
-    private BluetoothGatt mConnectedGatt;
 
     private ProgressDialog mProgress;
 
-    private TextView mXAccel, mYAccel, mZAccel, mTapTap, mTemp, mStep, mBattery, mBattery2, mRefresh;
-    private Button mReadConfig, mSendConfig;
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
 
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
-    private GoogleApiClient client;
+    private BLEService mBLEService;
+    private static MainFragment mainFragment;
+    private static Fragment currentFragment = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         setContentView(R.layout.activity_main);
-//        setProgressBarIndeterminate(true);
 
-        /*
-         * We are going to display the results in some text fields
-         */
-        mXAccel = (TextView) findViewById(R.id.text_X);
-        mYAccel = (TextView) findViewById(R.id.text_Y);
-        mZAccel = (TextView) findViewById(R.id.text_Z);
-        mTapTap = (TextView) findViewById(R.id.text_taptap);
-        mTemp = (TextView) findViewById(R.id.text_temperature);
-        mStep = (TextView) findViewById(R.id.text_step);
-        mBattery = (TextView) findViewById(R.id.text_battery);
-        mBattery2 = (TextView) findViewById(R.id.text_battery2);
+        FragmentManager fm = getFragmentManager();
+        mainFragment = MainFragment.getInstance();
+        currentFragment = mainFragment;
+        fm.beginTransaction().add(R.id.content_main, mainFragment).addToBackStack(null).commit();
 
-        /*
-         * Bluetooth in Android 4.3 is accessed via the BluetoothManager, rather than
-         * the old static BluetoothAdapter.getInstance()
-         */
-//        mBLEService = new BLEService(this);
-        BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
-        mBluetoothAdapter = manager.getAdapter();
-        mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
-
-        mDevices = new SparseArray<>();
-
-        mRefresh = (TextView) findViewById(R.id.text_refresh_rate);
-        mReadConfig = (Button) findViewById(R.id.btn_read);
-        mReadConfig.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mConnectedGatt != null) {
-                    mCharacteristic = mConnectedGatt.getService(ENERGY_SERVICE).getCharacteristic(ENERGY_CONFIG_CHAR);
-
-                }
-            }
-        });
-        mSendConfig = (Button) findViewById(R.id.btn_config);
         /*
          * A progress dialog will be needed while the connection process is
          * taking place
@@ -135,9 +65,6 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         mProgress = new ProgressDialog(this);
         mProgress.setIndeterminate(true);
         mProgress.setCancelable(false);
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
 
         // Android M Permission check 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -156,6 +83,8 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                 builder.show();
             }
         }
+
+        mBLEService = BLEService.getInstance(this);
     }
 
     @Override
@@ -191,11 +120,11 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
          * We need to enforce that Bluetooth is first enabled, and take the
          * user to settings to enable it if they have not done so.
          */
-        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+        if (BLEService.getInstance(this).getmBluetoothAdapter() == null || !BLEService.getInstance(this).getmBluetoothAdapter().isEnabled()) {
             //Bluetooth is disabled
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivity(enableBtIntent);
-            finish();
+//            finish();
             return;
         }
 
@@ -210,7 +139,12 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
             return;
         }
 
-        clearDisplayValues();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(NOTIFICATION_SERVICE);
+        this.registerReceiver(dataReceiver, filter);
+        if (mainFragment != null && currentFragment == mainFragment) {
+            mainFragment.clearDisplayValues();
+        }
 //        if (mConnectedGatt != null) {
 //            mConnectedGatt.connect();
 //        }
@@ -228,9 +162,13 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
         //Make sure dialog is hidden
 //        mProgress.dismiss();
         //Cancel any scans in progress
-        mHandler.removeCallbacks(mStopRunnable);
-        mHandler.removeCallbacks(mStartRunnable);
-        mBluetoothAdapter.stopLeScan(this);
+        mBLEService.getmHandler().removeCallbacks(mBLEService.getmStopRunnable());
+        mBLEService.getmHandler().removeCallbacks(mBLEService.getmStartRunnable());
+        try {
+            this.unregisterReceiver(dataReceiver);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        }
 //        stopScan();
     }
 
@@ -238,397 +176,103 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
     protected void onStop() {
         super.onStop();// ATTENTION: This was auto-generated to implement the App Indexing API.
 // See https://g.co/AppIndexing/AndroidStudio for more information.
-        AppIndex.AppIndexApi.end(client, getIndexApiAction());
         //Disconnect from any active tag connection
-        if (mConnectedGatt != null) {
-            Log.e("onStop", "disconnecting from " + mConnectedGatt.getDevice().getName());
+        if (BLEService.getInstance(this).getmGatt() != null) {
+            Log.e("onStop", "disconnecting from " + BLEService.getInstance(this).getmGatt().getDevice().getName());
             //mConnectedGatt.disconnect();
 //            mConnectedGatt = null;
         }
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client.disconnect();
     }
 
-protected void onDestroy() {
+    protected void onDestroy() {
+        super.onDestroy();
+    }
 
-}
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Add the "scan" option to the menu
         getMenuInflater().inflate(R.menu.main, menu);
         //Add any device elements we've discovered to the overflow menu
-        for (int i = 0; i < mDevices.size(); i++) {
-            BluetoothDevice device = mDevices.valueAt(i);
-            menu.add(0, mDevices.keyAt(i), 0, device.getName());
+        for (int i = 0; i < mBLEService.getmDevices().size(); i++) {
+            BluetoothDevice device = mBLEService.getmDevices().valueAt(i);
+            menu.add(0, mBLEService.getmDevices().keyAt(i), 0, device.getName());
         }
 
         return true;
     }
 
+    private Runnable deviceNames = new Runnable() {
+        @Override
+        public void run() {
+            if (mBLEService.getmDevices() != null) {
+                Log.e(TAG, "Why the fuck is there a device?");
+            } else {
+                Log.e(TAG, "Shit, no device.");
+            }
+        }
+    };
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_scan:
-                mDevices.clear();
-                startScan();
+                mBLEService.getmDevices().clear();
+                mBLEService.startScan();
+                mHandler.postDelayed(deviceNames, 2500);
+                IntentFilter filter = new IntentFilter();
+                filter.addAction(NOTIFICATION_SERVICE);
+                this.registerReceiver(dataReceiver, filter);
                 return true;
             default:
                 //Obtain the discovered device to connect with
-                BluetoothDevice device = mDevices.get(item.getItemId());
+                BluetoothDevice device = mBLEService.getmDevices().get(item.getItemId());
                 Log.i(TAG, "Connecting to " + device.getName());
                 /*
                  * Make a connection with the device using the special LE-specific
                  * connectGatt() method, passing in a callback for GATT events
                  */
-                if (mConnectedGatt == null) {
-                    mConnectedGatt = device.connectGatt(this, true, mGattCallback);
+                mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to " + device.getName() + "..."));
+                if (mBLEService.getmGatt() == null) {
+                    mBLEService.setmGatt(device.connectGatt(this, true, mBLEService.getmGattCallback()));
+                } else {
+                    mHandler.sendMessage(Message.obtain(null, MSG_DISMISS, "Connected"));
                 }
 
                 //Display progress UI
-                mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to " + device.getName() + "..."));
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    private void clearDisplayValues() {
-        mXAccel.setText("---");
-        mYAccel.setText("---");
-        mZAccel.setText("---");
-        mTapTap.setText("---");
-        mTemp.setText("---");
-        mStep.setText("---");
-        mBattery.setText("---");
-        mBattery2.setText("---");
-        mRefresh.setText("---");
-    }
-
-
-    private Runnable mStopRunnable = new Runnable() {
+    private final BroadcastReceiver dataReceiver = new BroadcastReceiver() {
         @Override
-        public void run() {
-            stopScan();
-        }
-    };
-    private Runnable mStartRunnable = new Runnable() {
-        @Override
-        public void run() {
-            startScan();
-        }
-    };
+        public void onReceive(Context context, Intent intent) {
+            if (mainFragment != null && currentFragment == mainFragment) {
+                BluetoothGattCharacteristic accelCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000001-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+                BluetoothGattCharacteristic pressureCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000002-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+                ;
+                BluetoothGattCharacteristic energyCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000003-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+                ;
 
-    private void startScan() {
-//        ScanFilter soleFilter = new ScanFilter.Builder().setServiceUuid(PRESSURE_SERVICE).build();
-//        ArrayList<ScanFilter> filters = new ArrayList<ScanFilter>();
-//        filters.add(soleFilter);
+                accelCharacteristic.setValue(intent.getByteArrayExtra("accel"));
+                pressureCharacteristic.setValue(intent.getByteArrayExtra("pressure"));
+                energyCharacteristic.setValue(intent.getByteArrayExtra("energy"));
 
-//        ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-//        mBluetoothLeScanner.startScan(filters, setting);
-        mBluetoothAdapter.startLeScan(this);
-        setProgressBarIndeterminateVisibility(true);
-
-        mHandler.postDelayed(mStopRunnable, 2500);
-    }
-
-    private void stopScan() {
-        mBluetoothAdapter.stopLeScan(this);
-        setProgressBarIndeterminateVisibility(false);
-    }
-
-    /* BluetoothAdapter.LeScanCallback */
-
-    @Override
-    public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-        Log.i(TAG, "New LE Device: " + device.getAddress() + " @ " + rssi);
-        /*
-         * We are looking for SensorTag devices only, so validate the name
-         * that each device reports before adding it to our collection
-         */
-        if (DEVICE_NAME.equals(device.getName())) {
-            mDevices.put(device.hashCode(), device);
-            //Update the overflow menu
-            invalidateOptionsMenu();
-        }
-    }
-
-    /*
-     * In this callback, we've created a bit of a state machine to enforce that only
-     * one characteristic be read or written at a time until all of our sensors
-     * are enabled and we are registered to get notifications.
-     */
-    private BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
-
-        /* State Machine Tracking */
-        private int mState = 0;
-
-        private void reset() {
-            mState = 0;
-        }
-
-        private void advance() {
-            Log.e("Advance", "Called ! mState is " + mState);
-            mState++;
-        }
-
-        /*
-         * Send an enable command to each sensor by writing a configuration
-         * characteristic.  This is specific to the SensorTag to keep power
-         * low by disabling sensors you aren't using.
-         */
-        private void enableNextSensor(BluetoothGatt gatt) {
-            BluetoothGattCharacteristic characteristic;
-            switch (mState) {
-                case 0:
-                    Log.d(TAG, "Enabling pressure config");
-                    characteristic = gatt.getService(PRESSURE_SERVICE)
-                            .getCharacteristic(PRESSURE_CONFIG_CHAR);
-                    break;
-                case 1:
-                    Log.d(TAG, "Enabling accel config");
-                    characteristic = gatt.getService(ACCEL_SERVICE)
-                            .getCharacteristic(ACCEL_CONFIG_CHAR);
-                    break;
-                case 2:
-                    Log.d(TAG, "Enabling pressure cal");
-                    characteristic = gatt.getService(PRESSURE_SERVICE)
-                            .getCharacteristic(PRESSURE_CONFIG_CHAR);
-                    break;
-                default:
-                    mHandler.sendEmptyMessage(MSG_DISMISS);
-                    Log.i(TAG, "All Sensors Enabled");
-                    return;
-            }
-
-            gatt.writeCharacteristic(characteristic);
-        }
-
-        /*
-         * Read the data characteristic's value for each sensor explicitly
-         */
-        private void readNextSensor(BluetoothGatt gatt) {
-            BluetoothGattCharacteristic characteristic;
-            switch (mState) {
-                case 0:
-                    Log.d(TAG, "Reading piezo data");
-                    characteristic = gatt.getService(PRESSURE_SERVICE)
-                            .getCharacteristic(PRESSURE_DATA_CHAR);
-                    break;
-                case 1:
-                    Log.d(TAG, "Reading Accel Data");
-                    characteristic = gatt.getService(ACCEL_SERVICE)
-                            .getCharacteristic(ACCEL_DATA_CHAR);
-                    break;
-                case 2:
-                    Log.d(TAG, "Reading Energy Data");
-                    characteristic = gatt.getService(ENERGY_SERVICE)
-                            .getCharacteristic(ENERGY_DATA_CHAR);
-                    break;
-                default:
-                    mHandler.sendEmptyMessage(MSG_DISMISS);
-                    Log.i(TAG, "All Sensors Enabled");
-                    return;
-            }
-
-            gatt.readCharacteristic(characteristic);
-        }
-
-        /*
-         * Enable notification of changes on the data characteristic for each sensor
-         * by writing the ENABLE_NOTIFICATION_VALUE flag to that characteristic's
-         * configuration descriptor.
-         */
-        private void setNotifyNextSensor(BluetoothGatt gatt) {
-            BluetoothGattCharacteristic characteristic;
-            Log.e("mState", String.valueOf(mState));
-            switch (mState) {
-                case 0:
-                    Log.d(TAG, "Set notify pressure");
-                    characteristic = gatt.getService(PRESSURE_SERVICE)
-                            .getCharacteristic(PRESSURE_DATA_CHAR);
-                    break;
-                case 1:
-                    Log.d(TAG, "Set notify accel");
-                    characteristic = gatt.getService(ACCEL_SERVICE)
-                            .getCharacteristic(ACCEL_DATA_CHAR);
-                    break;
-                case 2:
-                    Log.d(TAG, "Set notify energy");
-                    characteristic = gatt.getService(ENERGY_SERVICE)
-                            .getCharacteristic(ENERGY_DATA_CHAR);
-                    break;
-                case 3:
-                    Log.d(TAG, "Enabling pressure config");
-                    characteristic = gatt.getService(PRESSURE_SERVICE)
-                            .getCharacteristic(PRESSURE_CONFIG_CHAR);
-                    break;
-                case 4:
-                    Log.d(TAG, "Enabling accel config");
-                    characteristic = gatt.getService(ACCEL_SERVICE)
-                            .getCharacteristic(ACCEL_CONFIG_CHAR);
-                    break;
-                case 5:
-                    Log.d(TAG, "Enabling pressure cal");
-                    characteristic = gatt.getService(PRESSURE_SERVICE)
-                            .getCharacteristic(PRESSURE_CONFIG_CHAR);
-                    break;
-                default:
-                    mHandler.sendEmptyMessage(MSG_DISMISS);
-                    Log.i(TAG, "All Sensors Enabled");
-                    return;
-            }
-
-            //Enable local notifications
-            gatt.setCharacteristicNotification(characteristic, true);
-            //Enabled remote notifications
-            BluetoothGattDescriptor desc = characteristic.getDescriptor(CONFIG_DESCRIPTOR);
-            if (characteristic.getUuid().equals(PRESSURE_CONFIG_CHAR) || characteristic.getUuid().equals(ACCEL_CONFIG_CHAR) || characteristic.getUuid().equals(ENERGY_CONFIG_CHAR))
-                desc.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
-            else
-                desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            gatt.writeDescriptor(desc);
-        }
-
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            Log.d(TAG, "Connection State Change: " + status + " -> " + connectionState(newState));
-            if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
-                /*
-                 * Once successfully connected, we must next discover all the services on the
-                 * device before we can read and write their characteristics.
-                 */
-                gatt.discoverServices();
-                Log.e("TEST", "Test");
-                mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Discovering Services..."));
-            } else if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_DISCONNECTED) {
-                /*
-                 * If at any point we disconnect, send a message to clear the weather values
-                 * out of the UI
-                 */
-                mHandler.sendEmptyMessage(MSG_CLEAR);
-            } else if (status != BluetoothGatt.GATT_SUCCESS) {
-                /*
-                 * If there is a failure at any stage, simply disconnect
-                 */
-                gatt.disconnect();
-                gatt.close();
-            }
-        }
-
-        public void showServices(BluetoothGatt gatt) {
-            List<BluetoothGattService> services = gatt.getServices();
-            for (BluetoothGattService service : services ) {
-                Log.i("onServicesDiscovered", service.getUuid().toString());
-            }
-        }
-        @Override
-        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            Log.d(TAG, "Services Discovered: " + status);
-            mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Enabling Sensors..."));
-            /*
-             * With services discovered, we are going to reset our state machine and start
-             * working through the sensors we need to enable
-             */
-            showServices(gatt);
-            reset();
-            //enableNextSensor(gatt);
-            setNotifyNextSensor(gatt);
-        }
-
-        @Override
-        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            //For each read, pass the data up to the UI thread to update the display
-            if (ACCEL_DATA_CHAR.equals(characteristic.getUuid())) {
-                mHandler.sendMessage(Message.obtain(null, MSG_ACCEL, characteristic));
-            }
-            if (PRESSURE_DATA_CHAR.equals(characteristic.getUuid())) {
-                mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE, characteristic));
-            }
-            if (ENERGY_DATA_CHAR.equals(characteristic.getUuid())) {
-                mHandler.sendMessage(Message.obtain(null, MSG_ENERGY, characteristic));
-            }
-
-            //After reading the initial value, next we enable notifications
-            setNotifyNextSensor(gatt);
-        }
-
-        @Override
-        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            //After writing the enable flag, next we read the initial value
-            Log.e("onCharacteristicWrite", "Here");
-            readNextSensor(gatt);
-        }
-
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            /*
-             * After notifications are enabled, all updates from the device on characteristic
-             * value changes will be posted here.  Similar to read, we hand these up to the
-             * UI thread to update the display.
-             */
-            if (ACCEL_DATA_CHAR.equals(characteristic.getUuid())) {
-                Log.e("Accel", "Received Accel notification");
-                mHandler.sendMessage(Message.obtain(null, MSG_ACCEL, characteristic));
-            }
-            if (PRESSURE_DATA_CHAR.equals(characteristic.getUuid())) {
-                Log.e("Pressure", "Received Pressure notification");
-                mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE, characteristic));
-            }
-            if (ENERGY_DATA_CHAR.equals(characteristic.getUuid())) {
-                Log.e("Energy", "Received Energy notification");
-                mHandler.sendMessage(Message.obtain(null, MSG_ENERGY, characteristic));
-            }
-            if (ENERGY_CONFIG_CHAR.equals(characteristic.getUuid())) {
-                Log.e("Energy", "Received Energy notification");
-                mHandler.sendMessage(Message.obtain(null, MSG_ENERGY_CONFIG, characteristic));
-            }
-            if (PRESSURE_CONFIG_CHAR.equals(characteristic.getUuid())) {
-                Log.e("Energy", "Received Energy notification");
-                mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE_CONFIG, characteristic));
-            }
-            if (ACCEL_CONFIG_CHAR.equals(characteristic.getUuid())) {
-                Log.e("Energy", "Received Energy notification");
-                mHandler.sendMessage(Message.obtain(null, MSG_ACCEL_CONFIG, characteristic));
-            }
-        }
-
-        @Override
-        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-            //Once notifications are enabled, we move to the next sensor and start over with enable
-            advance();
-            //enableNextSensor(gatt);
-            setNotifyNextSensor(gatt);
-        }
-
-        @Override
-        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
-            Log.d(TAG, "Remote RSSI: " + rssi);
-        }
-
-        private String connectionState(int status) {
-            switch (status) {
-                case BluetoothProfile.STATE_CONNECTED:
-                    return "Connected";
-                case BluetoothProfile.STATE_DISCONNECTED:
-                    return "Disconnected";
-                case BluetoothProfile.STATE_CONNECTING:
-                    return "Connecting";
-                case BluetoothProfile.STATE_DISCONNECTING:
-                    return "Disconnecting";
-                default:
-                    return String.valueOf(status);
+//            Log.e(TAG, MainActivity.byteToHex(accelCharacteristic.getValue()));
+//            Log.e(TAG, MainActivity.byteToHex(pressureCharacteristic.getValue()));
+//            Log.e(TAG, MainActivity.byteToHex(energyCharacteristic.getValue()));
+                if (accelCharacteristic.getValue() != null) {
+                    updateAccelValues(accelCharacteristic);
+                } else if (pressureCharacteristic.getValue() != null) {
+                    updatePressureValue(pressureCharacteristic);
+                } else if (energyCharacteristic.getValue() != null) {
+                    updateEnergyValue(energyCharacteristic);
+                }
             }
         }
     };
-
     /**
      * We have a Handler to process event results on the main thread
      **/
-    private static final int MSG_ENERGY = 301;
-    private static final int MSG_ENERGY_CONFIG = 302;
-    private static final int MSG_ACCEL = 401;
-    private static final int MSG_ACCEL_CONFIG = 402;
-    private static final int MSG_PRESSURE = 501;
-    private static final int MSG_PRESSURE_CONFIG = 502;
     private static final int MSG_PROGRESS = 201;
     private static final int MSG_DISMISS = 202;
     private static final int MSG_CLEAR = 203;
@@ -637,55 +281,6 @@ protected void onDestroy() {
         public void handleMessage(Message msg) {
             BluetoothGattCharacteristic characteristic;
             switch (msg.what) {
-                case MSG_ACCEL:
-                    characteristic = (BluetoothGattCharacteristic) msg.obj;
-                    if (characteristic.getValue() == null) {
-                        Log.w(TAG, "Error obtaining accel value");
-                        return;
-                    }
-                    updateAccelValues(characteristic);
-                    break;
-                case MSG_PRESSURE:
-                    characteristic = (BluetoothGattCharacteristic) msg.obj;
-                    if (characteristic.getValue() == null) {
-                        Log.w(TAG, "Error obtaining pressure value");
-                        return;
-                    }
-                    updatePressureValue(characteristic);
-                    break;
-                case MSG_ENERGY:
-                    characteristic = (BluetoothGattCharacteristic) msg.obj;
-                    if (characteristic.getValue() == null) {
-                        Log.w(TAG, "Error obtaining energy value");
-                        return;
-                    }
-                    updateEnergyValue(characteristic);
-                    break;
-                case MSG_ACCEL_CONFIG:
-                    characteristic = (BluetoothGattCharacteristic) msg.obj;
-                    if (characteristic.getValue() == null) {
-                        Log.w(TAG, "Error obtaining accel config return value");
-                        return;
-                    }
-                    break;
-                case MSG_PRESSURE_CONFIG:
-                    characteristic = (BluetoothGattCharacteristic) msg.obj;
-                    if (characteristic.getValue() == null) {
-                        Log.w(TAG, "Error obtaining pressure config return value");
-                        return;
-                    }
-                    break;
-                case MSG_ENERGY_CONFIG:
-                    characteristic = (BluetoothGattCharacteristic) msg.obj;
-                    if (characteristic.getValue() == null) {
-                        Log.w(TAG, "Error obtaining energy config return value");
-                        return;
-                    }
-                    else
-                    {
-                        Log.w(TAG, "Got Energy config return value!");
-                    }
-                    break;
                 case MSG_PROGRESS:
                     mProgress.setMessage((String) msg.obj);
                     if (!mProgress.isShowing()) {
@@ -696,62 +291,51 @@ protected void onDestroy() {
                     mProgress.hide();
                     break;
                 case MSG_CLEAR:
-                    clearDisplayValues();
+                    mainFragment.clearDisplayValues();
                     break;
             }
         }
     };
 
     /* Methods to extract sensor data and update the UI */
-    private int [] values;
-    private void updateAccelValues(BluetoothGattCharacteristic characteristic) {
+
+    public static void updateAccelValues(BluetoothGattCharacteristic characteristic) {
+        int[] values;
         values = SensorTagData.extractAccelCoefficients(characteristic);
-        mXAccel.setText(String.valueOf(values[0]));
-        mYAccel.setText(String.valueOf(values[1]));
-        mZAccel.setText(String.valueOf(values[2]));
-        mTemp.setText(String.valueOf(values[3]));
+        mainFragment.mXAccel.setText(String.valueOf(values[0]));
+        mainFragment.mYAccel.setText(String.valueOf(values[1]));
+        mainFragment.mZAccel.setText(String.valueOf(values[2]));
+        mainFragment.mTemp.setText(String.valueOf(values[3]));
     }
 
-    private void updateEnergyValue(BluetoothGattCharacteristic characteristic) {
+    public static void updateEnergyValue(BluetoothGattCharacteristic characteristic) {
         double[] batteryLevel = SensorTagData.getBatteryLevel(characteristic);
-        mBattery.setText(String.valueOf(batteryLevel[0]) + "mA");
-        mBattery2.setText(String.valueOf(batteryLevel[1]) + "V");
+        mainFragment.mBattery.setText(String.valueOf(batteryLevel[0]) + "mA");
+        mainFragment.mBattery2.setText(String.valueOf(batteryLevel[1]) + "V");
     }
 
 
-    private void updatePressureValue(BluetoothGattCharacteristic characteristic) {
+    public static void updatePressureValue(BluetoothGattCharacteristic characteristic) {
         if (SensorTagData.isTapTap(characteristic)) {
-            mTapTap.setText("True");
+            mainFragment.mTapTap.setText("True");
         } else {
-            mTapTap.setText("False");
+            mainFragment.mTapTap.setText("False");
         }
         int steps = SensorTagData.getSteps(characteristic);
-        mStep.setText(String.valueOf(steps));
+        mainFragment.mStep.setText(String.valueOf(steps));
     }
 
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
-    public Action getIndexApiAction() {
-        Thing object = new Thing.Builder()
-                .setName("Main Page") // TODO: Define a title for the content shown.
-                // TODO: Make sure this auto-generated URL is correct.
-                .setUrl(Uri.parse("http://[ENTER-YOUR-URL-HERE]"))
-                .build();
-        return new Action.Builder(Action.TYPE_VIEW)
-                .setObject(object)
-                .setActionStatus(Action.STATUS_TYPE_COMPLETED)
-                .build();
+    public static String byteToHex(byte[] value) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : value) {
+            sb.append(String.format("%02X ", b));
+        }
+        return sb.toString();
     }
+
 
     @Override
     public void onStart() {
         super.onStart();
-
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client.connect();
-        AppIndex.AppIndexApi.start(client, getIndexApiAction());
     }
 }
