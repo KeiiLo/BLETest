@@ -125,13 +125,13 @@
         android:id="@+id/button_row">
 
         <Button
-            android:text="Send config"
+            android:text="Go to Settings"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/btn_config" />
 
         <Button
-            android:text="Read config"
+            android:text="Reset Step"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/btn_read" />

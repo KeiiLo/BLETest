@@ -23,7 +23,9 @@ import android.util.SparseArray;
 import android.widget.Toast;
 
 import com.wercup.rcup.testble.MainActivity;
+import com.wercup.rcup.testble.tools.SensorTagData;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -62,29 +64,35 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
     public static final UUID PRESSURE_CONFIG_CHAR = UUID.fromString("00002502-1212-efde-1523-785fef13d123");
     /* Client Configuration Descriptor */
     public static final UUID CONFIG_DESCRIPTOR = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
+
     /**
      * Instantiation des différents objets
      */
 
-    // Attributs de la classe
+    // Tous les attributs correspondant au BLE
     private BluetoothGatt mGatt;
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mBluetoothLeScanner;
     private BluetoothDevice mDevice;
-    private ScanFilter mFilter;
-    private ScanCallback mScanCallBack;
     private BluetoothGattCharacteristic mCharacteristic;
     private ScanCallback scanCallBack;
 
     private SparseArray<BluetoothDevice> mDevices;
+
     // Instance de la classe
     private static BLEService mInstance;
 
+    // Booléen de garde pour vérifier si tous les services sont activés
     public boolean mEnabled;
+
     // Contexte de l'instance
     private Context mContext;
 
+    /**
+     * Simple fonction pour créer une instance ou la récupérer si elle existe déjà
+     */
     public static BLEService getInstance(Context context) {
         if (mInstance == null) {
             mInstance = new BLEService(context);
@@ -92,6 +100,9 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
         return mInstance;
     }
 
+    /**
+     * Constructeur
+     */
     public BLEService(Context context) {
         mContext = context;
         mBluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
@@ -154,12 +165,10 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
     }
 
     public BluetoothGattCallback getmGattCallback() {
-
         return mGattCallback;
     }
 
     public Handler getmHandler() {
-
         return mHandler;
     }
 
@@ -223,8 +232,11 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining accel config return value");
                         return;
-                    } else {
-                        Log.w(TAG, "Got accel config return value!");
+                    } else if (mEnabled) {
+                        Log.i(TAG, "Response From Accel" + SensorTagData.bytesToHex(trame));
+                        Intent intent = new Intent();
+                        intent.setAction(MainActivity.NOTIFICATION_SERVICE);
+                        mContext.sendBroadcast(intent.putExtra("accelconfig", trame));
                     }
                     break;
                 case MSG_PRESSURE_CONFIG:
@@ -233,8 +245,12 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining pressure config return value");
                         return;
-                    } else {
-                        Log.w(TAG, "Got pressure config return value!");
+                    } else if (mEnabled) {
+                        Log.i(TAG, "Response From Pressure" + SensorTagData.bytesToHex(trame));
+                        Intent intent = new Intent();
+                        intent.setAction(MainActivity.NOTIFICATION_SERVICE);
+                        Log.e(TAG, "Pressure config is :" + SensorTagData.bytesToHex(trame));
+                        mContext.sendBroadcast(intent.putExtra("pressureconfig", trame));
                     }
                     break;
                 case MSG_ENERGY_CONFIG:
@@ -243,10 +259,11 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining energy config return value");
                         return;
-                    } else {
-                        byte[] good = new byte[]{(byte) 0x10, (byte) 0x13, (byte) 0x88};
-                        if (trame == good)
-                            Log.w(TAG, "Got energy config return value!");
+                    } else if (mEnabled) {
+                        Log.i(TAG, "Response From Energy" + SensorTagData.bytesToHex(trame));
+                        Intent intent = new Intent();
+                        intent.setAction(MainActivity.NOTIFICATION_SERVICE);
+                        mContext.sendBroadcast(intent.putExtra("energyconfig", trame));
                     }
                     break;
                 case MSG_STATE:
@@ -262,7 +279,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
 //                    }
                     break;
                 case MSG_DISMISS:
-//                    mProgress.hide();
+                    readEnergyConfig(getmGatt());
                     break;
                 case MSG_CLEAR:
 //                    clearDisplayValues();
@@ -272,7 +289,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
     };
 
     /**
-     * Allow the scan to be stopped by making two threads
+     * Allow the scan to be stopped or started by making two threads
      */
 
     private Runnable mStopRunnable = new Runnable() {
@@ -402,7 +419,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
             mState++;
         }
 
-        /*
+        /**
          * Enable notification of changes on the data characteristic for each sensor
          * by writing the ENABLE_NOTIFICATION_VALUE flag to that characteristic's
          * configuration descriptor.
@@ -451,13 +468,15 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
 
             //Enable local notifications
             gatt.setCharacteristicNotification(characteristic, true);
-            if (characteristic.getUuid().equals(ENERGY_CONFIG_CHAR)) {
+
+            // Enable remote indication -> Mainly for settings purpose
+            if (characteristic.getUuid().equals(ENERGY_CONFIG_CHAR) || characteristic.getUuid().equals(ACCEL_CONFIG_CHAR) || characteristic.getUuid().equals(PRESSURE_CONFIG_CHAR)) {
                 Log.e("BLE", "Indication enabled on Energy config");
                 BluetoothGattDescriptor desc = characteristic.getDescriptor(CONFIG_DESCRIPTOR);
                 desc.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
                 gatt.writeDescriptor(desc);
             }
-            //Enabled remote notifications
+            // Enable remote notifications -> listening to the data that is broadcast by the Device
             BluetoothGattDescriptor desc = characteristic.getDescriptor(CONFIG_DESCRIPTOR);
             desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
             gatt.writeDescriptor(desc);
@@ -509,56 +528,30 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
             setNotifyNextSensor(gatt);
         }
 
-        final protected char[] hexArray = "0123456789ABCDEF".toCharArray();
-
-        public String bytesToHex(byte[] bytes) {
-            char[] hexChars = new char[bytes.length * 2];
-            for (int j = 0; j < bytes.length; j++) {
-                int v = bytes[j] & 0xFF;
-                hexChars[j * 2] = hexArray[v >>> 4];
-                hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-            }
-            return new String(hexChars);
-        }
-
         private int count = 0;
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
 
             if (ACCEL_DATA_CHAR.equals(characteristic.getUuid())) {
-//                Log.e("Accel", "Received Accel notification");
                 mHandler.sendMessage(Message.obtain(null, MSG_ACCEL, characteristic));
             }
             if (PRESSURE_DATA_CHAR.equals(characteristic.getUuid())) {
-//                Log.e("Pressure", "Received Pressure notification");
-//                Log.e(TAG, bytesToHex(characteristic.getValue()));
                 mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE, characteristic));
-                /*byte[] setConfig = new byte[]{(byte) 0x30, (byte) 0x28, (byte) 0x00};
-                byte[] readConfig = new byte[]{(byte) 0x31};
-                BluetoothGattCharacteristic configChar = mGatt.getService(PRESSURE_SERVICE).getCharacteristic(PRESSURE_CONFIG_CHAR);
-                if (count % 2 == 0) {
-                    configChar.setValue(setConfig);
-                } else {
-                    configChar.setValue(readConfig);
-                }
-                count++;
-                gatt.writeCharacteristic(configChar);*/
             }
             if (ENERGY_DATA_CHAR.equals(characteristic.getUuid())) {
-//                Log.e("Energy", "Received Energy notification");
                 mHandler.sendMessage(Message.obtain(null, MSG_ENERGY, characteristic));
             }
             if (ENERGY_CONFIG_CHAR.equals(characteristic.getUuid())) {
-                Log.e("Energy", "Received Energy config response: " + bytesToHex(characteristic.getValue()));
+                Log.e("Energy", "Received Energy config response: " + SensorTagData.bytesToHex(characteristic.getValue()));
                 mHandler.sendMessage(Message.obtain(null, MSG_ENERGY_CONFIG, characteristic));
             }
             if (PRESSURE_CONFIG_CHAR.equals(characteristic.getUuid())) {
-//                Log.e("Energy", "Received Energy notification");
+                Log.e("Energy", "Received Pressure config response: " + SensorTagData.bytesToHex(characteristic.getValue()));
                 mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE_CONFIG, characteristic));
             }
             if (ACCEL_CONFIG_CHAR.equals(characteristic.getUuid())) {
-//                Log.e("Energy", "Received Energy notification");
+                Log.e("Energy", "Received Accel config response: " + SensorTagData.bytesToHex(characteristic.getValue()));
                 mHandler.sendMessage(Message.obtain(null, MSG_ACCEL_CONFIG, characteristic));
             }
         }
@@ -585,4 +578,84 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
         }
     }
 
+    final protected char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    public String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+    public static void readEnergyConfig(BluetoothGatt gatt) {
+        byte[] readConfig = new byte[]{(byte) 0x11};
+        BluetoothGattCharacteristic readConfigChar = gatt.getService(BLEService.ENERGY_SERVICE).getCharacteristic(BLEService.ENERGY_CONFIG_CHAR);
+        readConfigChar.setValue(readConfig);
+        gatt.writeCharacteristic(readConfigChar);
+    }
+
+    public static void readAccelConfig(BluetoothGatt gatt) {
+        byte[] readConfig = new byte[]{(byte) 0x21};
+        BluetoothGattCharacteristic readConfigChar = gatt.getService(BLEService.ACCEL_SERVICE).getCharacteristic(BLEService.ACCEL_CONFIG_CHAR);
+        readConfigChar.setValue(readConfig);
+        gatt.writeCharacteristic(readConfigChar);
+    }
+
+    public static void readPressureConfig(BluetoothGatt gatt) {
+        byte[] readConfig = new byte[]{(byte) 0x31};
+        BluetoothGattCharacteristic readConfigChar = gatt.getService(BLEService.PRESSURE_SERVICE).getCharacteristic(BLEService.PRESSURE_CONFIG_CHAR);
+        readConfigChar.setValue(readConfig);
+        gatt.writeCharacteristic(readConfigChar);
+    }
+
+    public static void sendEnergyConfig(BluetoothGatt gatt) {
+        ByteBuffer b = ByteBuffer.allocate(4);
+        b.putInt(BLESettings.getEnergyRefreshRate());
+        byte[] result = b.array();
+        byte[] sendConfig = new byte[] {(byte) 0x10, result[2], result[3]};
+        Log.i("Tete", "Send Energy " + SensorTagData.bytesToHex(sendConfig));
+        BluetoothGattCharacteristic sendConfigChar = gatt.getService(BLEService.ENERGY_SERVICE).getCharacteristic(BLEService.ENERGY_CONFIG_CHAR);
+        sendConfigChar.setValue(sendConfig);
+        gatt.writeCharacteristic(sendConfigChar);
+    }
+
+    private static byte[] prepAccelConfig() {
+        ByteBuffer b = ByteBuffer.allocate(4);
+        b.putInt(BLESettings.getAccelRefreshRate());
+        byte[] result = b.array();
+        int firstByte = (BLESettings.getBandwidth() << 2) + BLESettings.getFullScaleSelection();
+        int secondByte = (BLESettings.getxAxis() << 5) + (BLESettings.getxAxis() << 4) + (BLESettings.getxAxis() << 3) + BLESettings.getAccelOutputRate();
+
+        byte[] sendConfig = new byte[] {(byte) firstByte, (byte) secondByte, result[2], result[3]};
+        return sendConfig;
+    }
+
+    public static void sendAccelConfig(BluetoothGatt gatt) {
+
+        byte[] result = prepAccelConfig();
+        byte[] sendConfig = new byte[] {(byte) 0x20, result[0], result[1], result[2], result[3]};
+        Log.i("Tete", "Send Accel " + SensorTagData.bytesToHex(sendConfig));
+        BluetoothGattCharacteristic sendConfigChar = gatt.getService(BLEService.ACCEL_SERVICE).getCharacteristic(BLEService.ACCEL_CONFIG_CHAR);
+        sendConfigChar.setValue(sendConfig);
+        gatt.writeCharacteristic(sendConfigChar);
+    }
+
+    private static byte[] prepPressureConfig() {
+        int lowerByte = (BLESettings.getLCOMPInput() << 5) + (BLESettings.getComparatorThres() << 1) + BLESettings.getEnableHyst();
+        int upperByte = (BLESettings.getResetCounter() << 5) + (BLESettings.getReadyEvent() << 4) + (BLESettings.getDownEvent() << 3) +
+                (BLESettings.getUpEvent() << 2) + (BLESettings.getCrossEvent() << 1) + BLESettings.getLCOMPState();
+        return new byte[] {(byte) lowerByte, (byte) upperByte};
+    }
+    public static void sendPressureConfig(BluetoothGatt gatt) {
+        byte[] result = prepPressureConfig();
+        BLESettings.setResetCounter(0);
+        byte[] sendConfig = new byte[] {(byte) 0x30, result[0], result[1]};
+        Log.i("Tete", "Send Pressure " + SensorTagData.bytesToHex(sendConfig));
+        BluetoothGattCharacteristic sendConfigChar = gatt.getService(BLEService.PRESSURE_SERVICE).getCharacteristic(BLEService.PRESSURE_CONFIG_CHAR);
+        sendConfigChar.setValue(sendConfig);
+        gatt.writeCharacteristic(sendConfigChar);
+    }
 }

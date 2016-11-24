@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:shrinkColumns="*"
+    android:stretchColumns="*">
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1.0">
+
+        <TextView
+            android:id="@+id/energyrefresh_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Energy refresh rate" />
+
+        <SeekBar
+            android:id="@+id/energyrefresh_seek"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:max="4" />
+
+        <TextView
+            android:id="@+id/energyrefresh_value"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:text="0" />
+
+        <TextView
+            android:id="@+id/hyst_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hyst 50mV" />
+
+        <Switch
+            android:id="@+id/hyst_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left" />
+
+        <TextView
+            android:id="@+id/blank_label_1"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1.0">
+
+        <TextView
+            android:id="@+id/accelrefresh_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Accel refresh rate" />
+
+        <SeekBar
+            android:id="@+id/accelrefresh_seek"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:max="4" />
+
+        <TextView
+            android:id="@+id/accelrefresh_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0" />
+
+        <TextView
+            android:id="@+id/compthres_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Comp Threshold" />
+
+        <SeekBar
+            android:id="@+id/compthres_seek"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:max="6" />
+
+        <TextView
+            android:id="@+id/compthres_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1.0">
+
+        <TextView
+            android:id="@+id/output_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Output data rate" />
+
+        <SeekBar
+            android:id="@+id/output_seek"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:max="6" />
+
+        <TextView
+            android:id="@+id/output_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0" />
+
+        <TextView
+            android:id="@+id/input_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LCOMP input" />
+
+        <TextView
+            android:id="@+id/input_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OK" />
+
+        <TextView
+            android:id="@+id/blank_label_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1.0">
+
+        <TextView
+            android:id="@+id/z_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Z-Axis" />
+
+        <Switch
+            android:id="@+id/z_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left" />
+
+        <TextView
+            android:id="@+id/z_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/state_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LCOMP State" />
+
+        <TextView
+            android:id="@+id/state_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enabled" />
+
+        <TextView
+            android:id="@+id/state_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1.0">
+
+        <TextView
+            android:id="@+id/y_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Y-Axis" />
+
+        <Switch
+            android:id="@+id/y_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left" />
+
+        <TextView
+            android:id="@+id/y_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/cross_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cross Event" />
+
+        <TextView
+            android:id="@+id/cross_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="True" />
+
+        <TextView
+            android:id="@+id/cross_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:id="@+id/x_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="X-Axis" />
+
+        <Switch
+            android:id="@+id/x_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left" />
+
+        <TextView
+            android:id="@+id/x_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/up_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Up Event" />
+
+        <TextView
+            android:id="@+id/up_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="True" />
+
+        <TextView
+            android:id="@+id/up_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1.0">
+
+        <TextView
+            android:id="@+id/fullscale_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FullScale Selection" />
+
+        <SeekBar
+            android:id="@+id/fullscale_seek"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:max="3" />
+
+        <TextView
+            android:id="@+id/fullscale_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0" />
+
+        <TextView
+            android:id="@+id/down_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Event Down" />
+
+        <TextView
+            android:id="@+id/down_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="False" />
+
+        <TextView
+            android:id="@+id/down_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1.0">
+
+        <TextView
+            android:id="@+id/bandwidth_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bandwidth" />
+
+        <Switch
+            android:id="@+id/bandwidth_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left" />
+
+        <TextView
+            android:id="@+id/bandwidth_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+
+        <TextView
+            android:id="@+id/ready_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Event Ready" />
+
+        <TextView
+            android:id="@+id/ready_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="True" />
+
+        <TextView
+            android:id="@+id/ready_blank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1.0">
+
+
+        <TextView
+            android:id="@+id/blank_line1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/blank_line2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/blank_line3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+        <!--<Button
+            android:id="@+id/reset_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reset Step" />-->
+
+        <TextView
+            android:id="@+id/blank_line4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+        <Button
+            android:id="@+id/sendconfig_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Set Config" />
+
+        <!--<Button
+            android:id="@+id/default_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Default" />-->
+    </TableRow>
+
+</TableLayout>

@@ -4,6 +4,8 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.util.Log;
 import android.util.StringBuilderPrinter;
 
+import com.wercup.rcup.testble.BLEService.BLEService;
+
 /**
  * Created by KeiLo on 22/09/16.
  */
@@ -36,15 +38,61 @@ public class SensorTagData {
     public static int[] extractAccelCoefficients(BluetoothGattCharacteristic c) {
         int[] coefficients = new int[4];
 
-//        Log.i("Accel", "X");
+//        Log.e("Accel", "Byte 0 : " + byteToHex(c.getValue()[0]) + byteToHex(c.getValue()[1]));
         coefficients[0] = shortSignedAtOffset(c, 0);
-//        Log.i("Accel", "Y");
+//        Log.e("Accel", "Byte 1 : " + byteToHex(c.getValue()[2]) + byteToHex(c.getValue()[3]));
         coefficients[1] = shortSignedAtOffset(c, 2);
-//        Log.i("Accel", "Z");
+//        Log.e("Accel", "Byte 2 : " + byteToHex(c.getValue()[4]) + byteToHex(c.getValue()[5]));
         coefficients[2] = shortSignedAtOffset(c, 4);
+//        Log.e("Accel", "Byte 3 : " + byteToHex(c.getValue()[6]) + byteToHex(c.getValue()[7]));
         coefficients[3] = getTemp(c);
 
         return coefficients;
+    }
+
+
+    /**
+     * Simple function to convert byte to Hex String
+     */
+    public static String byteToHex(byte b) {
+        return String.format("%02X", b);
+    }
+
+    /**
+     * Function to convert byte array to Hex string
+     */
+    final static protected char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+    /**
+     * Simple conversion from byte array to bits
+     */
+    public static String bytesToBinary(byte[] bytes)
+    {
+        StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE);
+        for( int i = 0; i < Byte.SIZE * bytes.length; i++ )
+            sb.append((bytes[i / Byte.SIZE] << i % Byte.SIZE & 0x80) == 0 ? '0' : '1');
+        return sb.toString();
+    }
+
+    /**
+     * Simple conversion from byte array to bits
+     */
+    public static String byteToBinary(byte b)
+    {
+        StringBuilder sb = new StringBuilder(Byte.SIZE);
+        for( int i = 0; i < Byte.SIZE; i++ )
+            sb.append((b << i % Byte.SIZE & 0x80) == 0 ? '0' : '1');
+        return sb.toString();
     }
 
     /**
@@ -55,7 +103,7 @@ public class SensorTagData {
     public static double[] getBatteryLevel (BluetoothGattCharacteristic c) {
         Integer[] rawValues = shortSignedAtOffsetBattery(c);
         double[] processedValues = new double[2];
-        Log.e("Battery", String.valueOf(rawValues[0]));
+//        Log.e("Battery", String.valueOf(rawValues[0]));
         processedValues[0] = (double) rawValues[0];
         processedValues[1] = (double) rawValues[1] / 1000;
         return processedValues;
@@ -89,11 +137,13 @@ public class SensorTagData {
         return (lowerByte << 8) + upperByte;
     }
 
-    private static Integer shortUnsignedAtOffset(BluetoothGattCharacteristic c, int offset) {
+    //TODO: No use for this function at the moment
+    public static Integer shortUnsignedAtOffset(BluetoothGattCharacteristic c, int offset) {
         Integer lowerByte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, offset);
         Integer upperByte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, offset + 1); // Note: interpret MSB as unsigned.
 
-        return (upperByte << 8) + lowerByte;
+
+        return (lowerByte << 8) + upperByte;
     }
 
     /**
@@ -107,7 +157,7 @@ public class SensorTagData {
         int processedTemp;
         System.arraycopy(rawData, 6, tempData, 0, 2);
         processedTemp = (((tempData[0] << 8) + tempData[1]) >> 5) / 8 + 25;
-        Log.e("Temp Processed value", String.valueOf(processedTemp));
+//        Log.e("Temp Processed value", String.valueOf(processedTemp));
 
         return  processedTemp;
     }
@@ -124,4 +174,6 @@ public class SensorTagData {
         Integer upperByte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 4); // Note: interpret MSB as unsigned.
         return (lowerByte << 24) + (lower2Byte << 16) + (lower3Byte << 8) + upperByte;
     }
+
+
 }

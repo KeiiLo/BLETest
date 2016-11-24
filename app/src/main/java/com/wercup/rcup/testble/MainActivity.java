@@ -5,17 +5,9 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
-import android.bluetooth.le.BluetoothLeScanner;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -24,22 +16,19 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
-import android.os.Message;
 import android.os.Bundle;
+import android.os.Message;
 import android.util.Log;
-import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.wercup.rcup.testble.BLEService.BLEService;
-import com.wercup.rcup.testble.tools.SensorTagData;
+import com.wercup.rcup.testble.BLEService.BLESettings;
 import com.wercup.rcup.testble.fragments.mainFragment;
+import com.wercup.rcup.testble.fragments.settingsFragment;
+import com.wercup.rcup.testble.tools.SensorTagData;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -50,8 +39,9 @@ public class MainActivity extends Activity {
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
 
-    private static mainFragment mainFragment;
-    private static Fragment currentFragment = null;
+    public static mainFragment mainFragment;
+    public static settingsFragment settingsFragment;
+    public static Fragment currentFragment = null;
 
     private BLEService mBLEService;
 
@@ -94,28 +84,135 @@ public class MainActivity extends Activity {
         this.registerReceiver(dataReceiver, filter);
     }
 
+
     private final BroadcastReceiver dataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (mainFragment != null && currentFragment == mainFragment) {
-                BluetoothGattCharacteristic accelCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000001-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
-                BluetoothGattCharacteristic pressureCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000002-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
-                BluetoothGattCharacteristic energyCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000003-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
-                accelCharacteristic.setValue(intent.getByteArrayExtra("accel"));
-                pressureCharacteristic.setValue(intent.getByteArrayExtra("pressure"));
-                energyCharacteristic.setValue(intent.getByteArrayExtra("energy"));
-                if (pressureCharacteristic.getValue() != null) {
-                    mainFragment.updatePressureValue(pressureCharacteristic);
-                }
-                if (accelCharacteristic.getValue() != null) {
-                    mainFragment.updateAccelValues(accelCharacteristic);
-                }
-                if (energyCharacteristic.getValue() != null) {
-                    mainFragment.updateEnergyValue(energyCharacteristic);
-                }
+            BluetoothGattCharacteristic accelCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000001-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+            BluetoothGattCharacteristic pressureCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000002-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+            BluetoothGattCharacteristic energyCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000003-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+            BluetoothGattCharacteristic accelConfigCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000004-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+            BluetoothGattCharacteristic pressureConfigCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000005-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+            BluetoothGattCharacteristic energyConfigCharacteristic = new BluetoothGattCharacteristic(UUID.fromString("00000006-1212-efde-1523-785fef13d123"), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+            energyCharacteristic.setValue(intent.getByteArrayExtra("energy"));
+            accelCharacteristic.setValue(intent.getByteArrayExtra("accel"));
+            pressureCharacteristic.setValue(intent.getByteArrayExtra("pressure"));
+            energyConfigCharacteristic.setValue(intent.getByteArrayExtra("energyconfig"));
+            accelConfigCharacteristic.setValue(intent.getByteArrayExtra("accelconfig"));
+            pressureConfigCharacteristic.setValue(intent.getByteArrayExtra("pressureconfig"));
+            if (energyCharacteristic.getValue() != null) {
+                mHandler.sendMessage(Message.obtain(null, MSG_ENERGY_DATA, energyCharacteristic));
+            }
+            if (accelCharacteristic.getValue() != null) {
+                mHandler.sendMessage(Message.obtain(null, MSG_ACCEL_DATA, accelCharacteristic));
+            }
+            if (pressureCharacteristic.getValue() != null) {
+                mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE_DATA, pressureCharacteristic));
+            }
+            if (energyConfigCharacteristic.getValue() != null) {
+                mHandler.sendMessage(Message.obtain(null, MSG_ENERGY_CONFIG, energyConfigCharacteristic));
+            }
+            if (accelConfigCharacteristic.getValue() != null) {
+                mHandler.sendMessage(Message.obtain(null, MSG_ACCEL_CONFIG, accelConfigCharacteristic));
+            }
+            if (pressureConfigCharacteristic.getValue() != null) {
+                mHandler.sendMessage(Message.obtain(null, MSG_PRESSURE_CONFIG, pressureConfigCharacteristic));
             }
         }
     };
+
+    /**
+     * Handler to process multiple events on the main thread
+     **/
+    private static final int MSG_ENERGY_CONFIG = 302;
+    private static final int MSG_ACCEL_CONFIG = 402;
+    private static final int MSG_PRESSURE_CONFIG = 502;
+    private static final int MSG_ENERGY_DATA = 301;
+    private static final int MSG_ACCEL_DATA = 401;
+    private static final int MSG_PRESSURE_DATA = 501;
+    private BluetoothGattCharacteristic mCharacteristic = null;
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            byte[] trame;
+            switch (msg.what) {
+                case MSG_ENERGY_DATA:
+                    mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    mainFragment.updateEnergyValue(mCharacteristic);
+                    break;
+                case MSG_ACCEL_DATA:
+                    mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    mainFragment.updateAccelValues(mCharacteristic);
+                    break;
+                case MSG_PRESSURE_DATA:
+                    mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    mainFragment.updatePressureValue(mCharacteristic);
+                    break;
+                case MSG_ENERGY_CONFIG:
+                    mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    trame = mCharacteristic.getValue();
+                    if (trame == null) {
+                        Log.w(TAG, "Error obtaining energy config return value");
+                        return;
+                    } else {
+                        Log.i(TAG, "Value in Hex: " + SensorTagData.bytesToHex(trame));
+                        Log.i(TAG, "Value in bit: " + SensorTagData.bytesToBinary(trame));
+                        switch (trame[0]) {
+                            case (byte) 0x90:
+                                Toast.makeText(MainActivity.this, "Energy config success", Toast.LENGTH_SHORT).show();
+                                BLEService.sendAccelConfig(mBLEService.getmGatt());
+                                break;
+                            case (byte) 0x91:
+                                BLESettings.parseEnergyConfig(mCharacteristic);
+                                BLEService.readAccelConfig(mBLEService.getmGatt());
+                                break;
+                        }
+                    }
+                    break;
+                case MSG_ACCEL_CONFIG:
+                    mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    trame = mCharacteristic.getValue();
+                    if (trame == null) {
+                        Log.w(TAG, "Error obtaining accel config return value");
+                        return;
+                    } else {
+                        Log.i(TAG, "Value in Hex: " + SensorTagData.bytesToHex(trame));
+                        Log.i(TAG, "Value in bit: " + SensorTagData.bytesToBinary(trame));
+                        switch (trame[0]) {
+                            case (byte) 0xA0:
+                                Toast.makeText(MainActivity.this, "Accel config success", Toast.LENGTH_SHORT).show();
+                                BLEService.sendPressureConfig(mBLEService.getmGatt());
+                                break;
+                            case (byte) 0xA1:
+                                BLESettings.parseAccelConfig(mCharacteristic);
+                                BLEService.readPressureConfig(mBLEService.getmGatt());
+                                break;
+                        }
+                    }
+                    break;
+                case MSG_PRESSURE_CONFIG:
+                    mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    trame = mCharacteristic.getValue();
+                    if (trame == null) {
+                        Log.w(TAG, "Error obtaining pressure config return value");
+                        return;
+                    } else {
+                        Log.i(TAG, "Value in Hex: " + SensorTagData.bytesToHex(trame));
+                        Log.i(TAG, "Value in bit: " + SensorTagData.bytesToBinary(trame));
+                        switch (trame[0]) {
+                            case (byte) 0xB0:
+                                Toast.makeText(MainActivity.this, "Pressure config success", Toast.LENGTH_SHORT).show();
+                                break;
+                            case (byte) 0xB1:
+                                BLESettings.parsePressureConfig(mCharacteristic);
+                                break;
+                        }
+                    }
+                    break;
+            }
+        }
+    };
+
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
@@ -169,14 +266,6 @@ public class MainActivity extends Activity {
         }
         if (mainFragment != null && currentFragment == mainFragment)
             mainFragment.clearDisplayValues();
-//        if (mConnectedGatt != null) {
-//            mConnectedGatt.connect();
-//        }
-    /*
-        Log.e("Device Bonded",String.valueOf(mConnectedGatt));
-        Log.e("Device Bonded",String.valueOf(mConnectedGatt.getDevice()));
-        Log.e("Device Bonded",String.valueOf(mConnectedGatt.getDevice().getBondState()));
-        */
 
     }
 
@@ -191,15 +280,11 @@ public class MainActivity extends Activity {
         //Disconnect from any active tag connection
         if (mBLEService.getmGatt() != null) {
             Log.e("onStop", "disconnecting from " + mBLEService.getmGatt().getDevice().getName());
-            //mConnectedGatt.disconnect();
-//            mConnectedGatt = null;
         }
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
     }
 
     protected void onDestroy() {
-
+        super.onDestroy();
     }
 
     @Override
@@ -216,9 +301,8 @@ public class MainActivity extends Activity {
     }
 
 
-    private Handler mHandler = new Handler();
-
     private boolean scanning = false;
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {

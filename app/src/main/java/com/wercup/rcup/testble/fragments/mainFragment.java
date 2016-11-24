@@ -1,5 +1,6 @@
 package com.wercup.rcup.testble.fragments;
 
+import android.app.FragmentManager;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
@@ -13,10 +14,14 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.koushikdutta.ion.builder.Builders;
 import com.wercup.rcup.testble.BLEService.BLEService;
+import com.wercup.rcup.testble.BLEService.BLESettings;
 import com.wercup.rcup.testble.MainActivity;
 import com.wercup.rcup.testble.R;
 import com.wercup.rcup.testble.tools.SensorTagData;
+
+import java.nio.ByteBuffer;
 
 public class mainFragment extends Fragment {
 
@@ -61,22 +66,29 @@ public class mainFragment extends Fragment {
         mReadConfig.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                /*byte[] setConfig = new byte[]{(byte) 0x30, (byte) 0x28, (byte) 0x00};
-                byte[] readConfig = new byte[]{(byte) 0x31};
-                BluetoothGattCharacteristic configChar = mGatt.getService(PRESSURE_SERVICE).getCharacteristic(PRESSURE_CONFIG_CHAR);
-                if (count % 2 == 0) {
-                    configChar.setValue(setConfig);
-                } else {
-                    configChar.setValue(readConfig);
-                }
-                count++;
-                gatt.writeCharacteristic(configChar);*/
+
                 Log.e("ButtonClick", "Clicking on read");
-                byte[] readConfig = new byte[]{(byte) 0x11};
-                BluetoothGatt gatt = mainActivity.getmBLEService().getmGatt();
-                BluetoothGattCharacteristic readConfigChar = gatt.getService(BLEService.ENERGY_SERVICE).getCharacteristic(BLEService.ENERGY_CONFIG_CHAR);
-                readConfigChar.setValue(readConfig);
-                gatt.writeCharacteristic(readConfigChar);
+                /*BLEService.readEnergyConfig(mainActivity.getmBLEService().getmGatt());*/
+                BLESettings.setResetCounter(1);
+                BLEService.sendPressureConfig(mainActivity.getmBLEService().getmGatt());
+
+            }
+        });
+        mSendConfig = (Button) view.findViewById(R.id.btn_config);
+        mSendConfig.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.e("ButtonClick", "Clicking on Send");
+                /*if (mainActivity.getmBLEService().getmGatt() != null) {
+                    BLEService.sendEnergyConfig(mainActivity.getmBLEService().getmGatt());
+                }*/
+                FragmentManager fm = getFragmentManager();
+                mainActivity.settingsFragment = settingsFragment.newInstance();
+                mainActivity.currentFragment = mainActivity.settingsFragment;
+                fm.beginTransaction()
+                        .replace(R.id.container, mainActivity.settingsFragment)
+                        .addToBackStack(null)
+                        .commit();
             }
         });
         super.onViewCreated(view, savedInstanceState);
@@ -126,6 +138,7 @@ public class mainFragment extends Fragment {
 
     @Override
     public void onAttach(Context context) {
+        Log.e("Main onAttach", "Here");
         super.onAttach(context);
     }
 
