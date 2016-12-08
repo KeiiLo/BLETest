@@ -79,6 +79,7 @@ public class MainActivity extends Activity {
                 .replace(R.id.container, mainFragment)
                 .commit();
         mBLEService = BLEService.getInstance(this);
+        BLEService.initLog();
         IntentFilter filter = new IntentFilter();
         filter.addAction(NOTIFICATION_SERVICE);
         this.registerReceiver(dataReceiver, filter);
@@ -281,6 +282,7 @@ public class MainActivity extends Activity {
         if (mBLEService.getmGatt() != null) {
             Log.e("onStop", "disconnecting from " + mBLEService.getmGatt().getDevice().getName());
         }
+        BLEService.createLog();
     }
 
     protected void onDestroy() {
@@ -350,4 +352,5 @@ public class MainActivity extends Activity {
     public void onStart() {
         super.onStart();
     }
+
 }

@@ -26,7 +26,7 @@ public class SensorTagData {
      * @param c BluetoothGattCharacteristic that is being read
      * @return Step count as an integer
      */
-    public static int getSteps(BluetoothGattCharacteristic c) {
+    public static int[] getSteps(BluetoothGattCharacteristic c) {
         return shortUnsignedAtOffset(c);
     }
 
@@ -167,12 +167,12 @@ public class SensorTagData {
      * @param c BluetoothGattCharacteristic that is being read
      * @return Step value in unsigned int
      */
-    private static Integer shortUnsignedAtOffset(BluetoothGattCharacteristic c) {
+    private static int[] shortUnsignedAtOffset(BluetoothGattCharacteristic c) {
         Integer lowerByte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1);
         Integer lower2Byte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 2);
         Integer lower3Byte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 3);
         Integer upperByte = c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 4); // Note: interpret MSB as unsigned.
-        return (lowerByte << 24) + (lower2Byte << 16) + (lower3Byte << 8) + upperByte;
+        return new int[] {(lowerByte << 8) + lower2Byte, (lower3Byte << 8) + upperByte};
     }
 
 

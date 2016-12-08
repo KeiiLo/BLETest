@@ -1,10 +1,8 @@
 package com.wercup.rcup.testble.fragments;
 
 import android.app.FragmentManager;
-import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.util.Log;
@@ -14,14 +12,12 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.koushikdutta.ion.builder.Builders;
 import com.wercup.rcup.testble.BLEService.BLEService;
 import com.wercup.rcup.testble.BLEService.BLESettings;
 import com.wercup.rcup.testble.MainActivity;
 import com.wercup.rcup.testble.R;
 import com.wercup.rcup.testble.tools.SensorTagData;
 
-import java.nio.ByteBuffer;
 
 public class mainFragment extends Fragment {
 
@@ -29,6 +25,8 @@ public class mainFragment extends Fragment {
     public Button mReadConfig, mSendConfig;
 
     public MainActivity mainActivity;
+    // On Alex's request.
+    private int mHorodata;
 
     public mainFragment() {
     }
@@ -83,10 +81,10 @@ public class mainFragment extends Fragment {
                     BLEService.sendEnergyConfig(mainActivity.getmBLEService().getmGatt());
                 }*/
                 FragmentManager fm = getFragmentManager();
-                mainActivity.settingsFragment = settingsFragment.newInstance();
-                mainActivity.currentFragment = mainActivity.settingsFragment;
+                MainActivity.settingsFragment = settingsFragment.newInstance();
+                MainActivity.currentFragment = MainActivity.settingsFragment;
                 fm.beginTransaction()
-                        .replace(R.id.container, mainActivity.settingsFragment)
+                        .replace(R.id.container, MainActivity.settingsFragment)
                         .addToBackStack(null)
                         .commit();
             }
@@ -119,8 +117,9 @@ public class mainFragment extends Fragment {
         } else {
             mTapTap.setText("False");
         }
-        int steps = SensorTagData.getSteps(characteristic);
-        mStep.setText(String.valueOf(steps));
+        int[] steps = SensorTagData.getSteps(characteristic);
+        mHorodata = steps[1];
+        mStep.setText(String.valueOf(steps[0]));
     }
 
 

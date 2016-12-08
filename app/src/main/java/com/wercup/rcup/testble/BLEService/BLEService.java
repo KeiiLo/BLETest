@@ -25,10 +25,20 @@ import android.widget.Toast;
 import com.wercup.rcup.testble.MainActivity;
 import com.wercup.rcup.testble.tools.SensorTagData;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+
+import static android.content.Context.MODE_PRIVATE;
 
 
 /**
@@ -88,7 +98,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
     public boolean mEnabled;
 
     // Contexte de l'instance
-    private Context mContext;
+    private static Context mContext;
 
     /**
      * Simple fonction pour créer une instance ou la récupérer si elle existe déjà
@@ -185,6 +195,15 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
     private static final int MSG_PROGRESS = 201;
     private static final int MSG_DISMISS = 202;
     private static final int MSG_CLEAR = 203;
+
+    private static final String LOG_ENERGY = "Energy Notif";
+    private static final String LOG_ENERGY_CONFIG = "Energy Config";
+    private static final String LOG_ACCEL = "Accel Notif";
+    private static final String LOG_ACCEL_CONFIG = "Accel Config";
+    private static final String LOG_PRESSURE = "Pressure Notif";
+    private static final String LOG_PRESSURE_CONFIG = "Pressure Config";
+    private static final String LOG_READ = "READ";
+    private static final String LOG_WRITE = "WRITE";
     private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -192,6 +211,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
             switch (msg.what) {
                 case MSG_ACCEL:
                     mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    addLog(LOG_ACCEL, LOG_READ, mCharacteristic);
                     trame = mCharacteristic.getValue();
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining accel value");
@@ -204,6 +224,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
                     break;
                 case MSG_PRESSURE:
                     mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    addLog(LOG_PRESSURE, LOG_READ, mCharacteristic);
                     trame = mCharacteristic.getValue();
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining pressure value");
@@ -216,6 +237,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
                     break;
                 case MSG_ENERGY:
                     mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    addLog(LOG_ENERGY, LOG_READ, mCharacteristic);
                     trame = mCharacteristic.getValue();
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining energy value");
@@ -228,6 +250,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
                     break;
                 case MSG_ACCEL_CONFIG:
                     mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    addLog(LOG_ACCEL_CONFIG, LOG_READ, mCharacteristic);
                     trame = mCharacteristic.getValue();
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining accel config return value");
@@ -241,6 +264,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
                     break;
                 case MSG_PRESSURE_CONFIG:
                     mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    addLog(LOG_PRESSURE_CONFIG, LOG_READ, mCharacteristic);
                     trame = mCharacteristic.getValue();
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining pressure config return value");
@@ -255,6 +279,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
                     break;
                 case MSG_ENERGY_CONFIG:
                     mCharacteristic = (BluetoothGattCharacteristic) msg.obj;
+                    addLog(LOG_ENERGY_CONFIG, LOG_READ, mCharacteristic);
                     trame = mCharacteristic.getValue();
                     if (trame == null) {
                         Log.w(TAG, "Error obtaining energy config return value");
@@ -615,10 +640,11 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
         ByteBuffer b = ByteBuffer.allocate(4);
         b.putInt(BLESettings.getEnergyRefreshRate());
         byte[] result = b.array();
-        byte[] sendConfig = new byte[] {(byte) 0x10, result[2], result[3]};
+        byte[] sendConfig = new byte[]{(byte) 0x10, result[2], result[3]};
         Log.i("Tete", "Send Energy " + SensorTagData.bytesToHex(sendConfig));
         BluetoothGattCharacteristic sendConfigChar = gatt.getService(BLEService.ENERGY_SERVICE).getCharacteristic(BLEService.ENERGY_CONFIG_CHAR);
         sendConfigChar.setValue(sendConfig);
+        addLog(LOG_ENERGY_CONFIG, LOG_WRITE, sendConfigChar);
         gatt.writeCharacteristic(sendConfigChar);
     }
 
@@ -629,17 +655,18 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
         int firstByte = (BLESettings.getBandwidth() << 2) + BLESettings.getFullScaleSelection();
         int secondByte = (BLESettings.getxAxis() << 5) + (BLESettings.getxAxis() << 4) + (BLESettings.getxAxis() << 3) + BLESettings.getAccelOutputRate();
 
-        byte[] sendConfig = new byte[] {(byte) firstByte, (byte) secondByte, result[2], result[3]};
+        byte[] sendConfig = new byte[]{(byte) firstByte, (byte) secondByte, result[2], result[3]};
         return sendConfig;
     }
 
     public static void sendAccelConfig(BluetoothGatt gatt) {
 
         byte[] result = prepAccelConfig();
-        byte[] sendConfig = new byte[] {(byte) 0x20, result[0], result[1], result[2], result[3]};
+        byte[] sendConfig = new byte[]{(byte) 0x20, result[0], result[1], result[2], result[3]};
         Log.i("Tete", "Send Accel " + SensorTagData.bytesToHex(sendConfig));
         BluetoothGattCharacteristic sendConfigChar = gatt.getService(BLEService.ACCEL_SERVICE).getCharacteristic(BLEService.ACCEL_CONFIG_CHAR);
         sendConfigChar.setValue(sendConfig);
+        addLog(LOG_ACCEL_CONFIG, LOG_WRITE, sendConfigChar);
         gatt.writeCharacteristic(sendConfigChar);
     }
 
@@ -647,15 +674,119 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
         int lowerByte = (BLESettings.getLCOMPInput() << 5) + (BLESettings.getComparatorThres() << 1) + BLESettings.getEnableHyst();
         int upperByte = (BLESettings.getResetCounter() << 5) + (BLESettings.getReadyEvent() << 4) + (BLESettings.getDownEvent() << 3) +
                 (BLESettings.getUpEvent() << 2) + (BLESettings.getCrossEvent() << 1) + BLESettings.getLCOMPState();
-        return new byte[] {(byte) lowerByte, (byte) upperByte};
+        return new byte[]{(byte) lowerByte, (byte) upperByte};
     }
+
     public static void sendPressureConfig(BluetoothGatt gatt) {
         byte[] result = prepPressureConfig();
         BLESettings.setResetCounter(0);
-        byte[] sendConfig = new byte[] {(byte) 0x30, result[0], result[1]};
+        byte[] sendConfig = new byte[]{(byte) 0x30, result[0], result[1]};
         Log.i("Tete", "Send Pressure " + SensorTagData.bytesToHex(sendConfig));
         BluetoothGattCharacteristic sendConfigChar = gatt.getService(BLEService.PRESSURE_SERVICE).getCharacteristic(BLEService.PRESSURE_CONFIG_CHAR);
         sendConfigChar.setValue(sendConfig);
+        addLog(LOG_PRESSURE_CONFIG, LOG_WRITE, sendConfigChar);
         gatt.writeCharacteristic(sendConfigChar);
+    }
+
+    private static ArrayList<String> logs;
+
+    public static void initLog() {
+        logs = new ArrayList<>();
+        readLog();
+        if (logs.size() == 0) {
+            logs.add("Time;ACTION;Service;Value;\n");
+        }
+    }
+
+    private static String getStringValue(String service, BluetoothGattCharacteristic c) {
+        String value = null;
+        switch (service) {
+            case LOG_ACCEL:
+                int[] values = SensorTagData.extractAccelCoefficients(c);
+                value = values[0] + "X " + values[1] + "Y " + values[2] + "Z " + values[3] + "°C";
+                break;
+            case LOG_ENERGY:
+                double[] batteryLevel = SensorTagData.getBatteryLevel(c);
+                value = batteryLevel[0] + "mA " + batteryLevel[1] + "V";
+                break;
+            case LOG_PRESSURE:
+                int[] piezo = SensorTagData.getSteps(c);
+                value = (SensorTagData.isTapTap(c) ? "TapTap " : "NoTapTap ") + piezo[0] + "Steps " + (piezo[1] * 50) + "ms";
+                break;
+            case LOG_ACCEL_CONFIG:
+                value = "0x" + SensorTagData.bytesToHex(c.getValue());
+                break;
+            case LOG_ENERGY_CONFIG:
+                value = "0x" + SensorTagData.bytesToHex(c.getValue());
+                break;
+            case LOG_PRESSURE_CONFIG:
+                value = "0x" + SensorTagData.bytesToHex(c.getValue());
+                break;
+        }
+        return value;
+    }
+
+    public static void addLog(String service, String action, BluetoothGattCharacteristic characteristic) {
+        Log.e(TAG, "adding Log");
+
+        Calendar c = Calendar.getInstance();
+        String hourMinutes = String.format(Locale.FRANCE, "%02d:%02d:%03d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.MILLISECOND));
+        String logEntry = createLogEntry(hourMinutes, action, service, getStringValue(service, characteristic));
+        logEntry += "\n";
+        logs.add(logEntry);
+    }
+
+    private static String createLogEntry(String time, String action, String service, String value) {
+        return (time + ";" + action + ";" + service + ";" + value + ";");
+    }
+
+    public static boolean createLog() {
+        Log.e(TAG, "create Log Called");
+        try {
+            Calendar c = Calendar.getInstance();
+            String filename = String.format(Locale.FRANCE, "%04d%02d%02d.csv", c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH));
+            FileOutputStream fOut = mContext.openFileOutput(filename, MODE_PRIVATE);
+            OutputStreamWriter osw = new OutputStreamWriter(fOut);
+            for (int i = 0; i < logs.size(); i++) {
+                if (i == 0)
+                    osw.write(logs.get(i));
+                else
+                    osw.append(logs.get(i));
+            }
+            osw.close();
+            return true;
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+        return false;
+    }
+
+    private static boolean readLog() {
+        try {
+            Calendar c = Calendar.getInstance();
+            String filename = String.format(Locale.FRANCE, "%04d%02d%02d.csv", c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH));
+            FileInputStream fIn = mContext.openFileInput(filename);
+            InputStreamReader isr = new InputStreamReader(fIn);
+
+        /* Prepare a char-Array that will
+         * hold the chars we read back in. */
+            try {
+                BufferedReader br = new BufferedReader(isr);
+                String line;
+                while ((line = br.readLine()) != null) {
+                    line += "\n";
+                    logs.add(line);
+                }
+                br.close();
+            } catch (IOException e) {
+                //You'll need to add proper error handling here
+                e.printStackTrace();
+            }
+            return true;
+
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+        return false;
     }
 }
