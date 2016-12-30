@@ -176,7 +176,7 @@ public class BLESettings {
         int hyst = trame[2] & 1;
         int LCOMPInput = trame[2] >> 5;
         int CompThres = ((trame[2] - (LCOMPInput << 5)) >>> 1);
-        int LCOMPState = trame[2] & 1;
+        int LCOMPState = trame[1] & 1;
         int cross = (trame[1] >> 1) & 1;
         int up = (trame[1] >> 2) & 1;
         int down = (trame[1] >> 3) & 1;
