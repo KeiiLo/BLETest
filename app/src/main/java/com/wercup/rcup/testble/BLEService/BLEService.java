@@ -674,7 +674,7 @@ public class BLEService implements BluetoothAdapter.LeScanCallback {
         int lowerByte = (BLESettings.getLCOMPInput() << 5) + (BLESettings.getComparatorThres() << 1) + BLESettings.getEnableHyst();
         int upperByte = (BLESettings.getResetCounter() << 5) + (BLESettings.getReadyEvent() << 4) + (BLESettings.getDownEvent() << 3) +
                 (BLESettings.getUpEvent() << 2) + (BLESettings.getCrossEvent() << 1) + BLESettings.getLCOMPState();
-        return new byte[]{(byte) lowerByte, (byte) upperByte};
+        return new byte[]{(byte) upperByte, (byte) lowerByte};
     }
 
     public static void sendPressureConfig(BluetoothGatt gatt) {

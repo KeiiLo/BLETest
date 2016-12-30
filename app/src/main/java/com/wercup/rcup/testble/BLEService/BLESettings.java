@@ -171,14 +171,16 @@ public class BLESettings {
 
     public static void parsePressureConfig(BluetoothGattCharacteristic c) {
         byte[] trame = c.getValue();
-        int hyst = trame[1] & 1;
-        int LCOMPInput = trame[1] >> 5;
-        int CompThres = ((trame[1] - (LCOMPInput << 5)) >>> 1);
+        Log.e("LOL", SensorTagData.bytesToHex(trame));
+        Log.e("LOL", SensorTagData.byteToHex(trame[1]));
+        int hyst = trame[2] & 1;
+        int LCOMPInput = trame[2] >> 5;
+        int CompThres = ((trame[2] - (LCOMPInput << 5)) >>> 1);
         int LCOMPState = trame[2] & 1;
-        int cross = (trame[2] >> 1) & 1;
-        int up = (trame[2] >> 2) & 1;
-        int down = (trame[2] >> 3) & 1;
-        int ready = (trame[2] >> 4) & 1;
+        int cross = (trame[1] >> 1) & 1;
+        int up = (trame[1] >> 2) & 1;
+        int down = (trame[1] >> 3) & 1;
+        int ready = (trame[1] >> 4) & 1;
         setEnableHyst(hyst);
         setLCOMPInput(LCOMPInput);
         setComparatorThres(CompThres);
